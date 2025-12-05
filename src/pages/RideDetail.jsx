@@ -16,11 +16,13 @@ export default function RideDetail() {
   const [hasCandidature, setHasCandidature] = useState(false)
   const [message, setMessage] = useState('')
   const [prixPropose, setPrixPropose] = useState('')
+  const [userProfile, setUserProfile] = useState(null)
 
   useEffect(() => {
     fetchCourse()
     checkCandidature()
-  }, [id])
+    fetchUserProfile()
+  }, [id, user])
 
   const fetchCourse = async () => {
     try {
@@ -39,6 +41,23 @@ export default function RideDetail() {
       console.error('Erreur:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUserProfile = async () => {
+    if (!user) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('valide')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Erreur profil:', error)
     }
   }
 
@@ -62,6 +81,12 @@ export default function RideDetail() {
   const handleCandidature = async () => {
     if (!user) {
       navigate('/login')
+      return
+    }
+
+    // Vérifier si l'utilisateur est validé
+    if (!userProfile?.valide) {
+      setMessage('⚠️ Votre profil n\'est pas encore validé. Veuillez envoyer vos documents à shuttlemarketplace@gmail.com')
       return
     }
 
@@ -177,6 +202,7 @@ export default function RideDetail() {
 
   const isOwner = user?.id === course.societe_id
   const isAttributedToMe = course.chauffeur_attribue_id === user?.id
+  const isValidated = userProfile?.valide === true
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -202,6 +228,39 @@ export default function RideDetail() {
         >
           ← {hasCandidature || isAttributedToMe ? 'Retour à mes candidatures' : 'Retour aux courses'}
         </button>
+
+        {/* Alerte profil non validé */}
+        {user && !isOwner && !isValidated && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626', marginBottom: '8px' }}>
+              ⚠️ Profil en attente de validation
+            </div>
+            <p style={{ fontSize: '14px', color: '#991b1b', margin: '0 0 12px 0' }}>
+              Pour pouvoir candidater aux courses, vous devez d'abord faire valider votre profil en envoyant vos documents.
+            </p>
+            <a
+              href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                textDecoration: 'none'
+              }}
+            >
+              📧 Envoyer mes documents
+            </a>
+          </div>
+        )}
 
         {/* Carte principale */}
         <div style={{
@@ -309,27 +368,28 @@ export default function RideDetail() {
                 </div>
               </div>
 
-{/* Infos client/passager */}
-<div style={{ 
-  backgroundColor: '#dbeafe', 
-  borderRadius: '8px', 
-  padding: '16px', 
-  marginBottom: '16px' 
-}}>
-  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
-    👤 Passager à prendre en charge
-  </div>
-  <div style={{ fontSize: '15px', color: '#1e40af' }}>
-    <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-      {course.client_prenom} {course.client_nom}
-    </div>
-    <div>
-      📞 <a href={`tel:${course.client_telephone}`} style={{ color: '#1e40af' }}>
-        {course.client_telephone}
-      </a>
-    </div>
-  </div>
-</div>
+              {/* Infos client/passager */}
+              <div style={{ 
+                backgroundColor: '#dbeafe', 
+                borderRadius: '8px', 
+                padding: '16px', 
+                marginBottom: '16px' 
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
+                  👤 Passager à prendre en charge
+                </div>
+                <div style={{ fontSize: '15px', color: '#1e40af' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                    {course.client_prenom} {course.client_nom}
+                  </div>
+                  <div>
+                    📞 <a href={`tel:${course.client_telephone}`} style={{ color: '#1e40af' }}>
+                      {course.client_telephone}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
               {/* Détails course */}
               <div style={{ 
                 backgroundColor: 'white', 
@@ -523,72 +583,105 @@ export default function RideDetail() {
               ✅ Vous avez déjà candidaté pour cette course
             </div>
           ) : course.statut === 'disponible' ? (
-            <div style={{
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              padding: '20px',
-              border: '1px solid #e5e7eb'
-            }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-                💰 Faire une offre
-              </h3>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-                  Prix proposé (€)
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="number"
-                    value={prixPropose}
-                    onChange={(e) => setPrixPropose(e.target.value)}
-                    placeholder={course.prix.toString()}
-                    min="1"
-                    max={course.prix}
-                    step="1"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '18px',
-                      fontWeight: 'bold'
-                    }}
-                  />
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                    Prix demandé : {course.prix}€
-                  </span>
+            // Formulaire de candidature - désactivé si non validé
+            !isValidated ? (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                padding: '20px',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: '1px solid #fecaca'
+              }}>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626', marginBottom: '8px' }}>
+                  🔒 Candidature bloquée
                 </div>
-                {prixPropose && parseFloat(prixPropose) > course.prix ? (
-                  <p style={{ fontSize: '13px', color: '#dc2626', marginTop: '8px', fontWeight: '500' }}>
-                    ⚠️ Le prix ne peut pas dépasser {course.prix}€
-                  </p>
-                ) : (
-                  <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
-                    💡 Vous pouvez proposer un prix égal ou inférieur au prix demandé
-                  </p>
-                )}
+                <p style={{ fontSize: '14px', color: '#991b1b', marginBottom: '16px' }}>
+                  Votre profil doit être validé avant de pouvoir candidater aux courses.
+                </p>
+                <a
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ADocuments%20requis%20:%0A-%20Autorisation%20LVC%0A-%20Attestation%20véhicule%0A-%20Attestation%20d'assurance%20transport%20de%20personnes%0A-%20Certificat%20d'immatriculation%0A-%20Carte%20verte%0A%0ACordialement"
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    fontSize: '15px',
+                    fontWeight: '500',
+                    textDecoration: 'none'
+                  }}
+                >
+                  📧 Envoyer mes documents
+                </a>
               </div>
+            ) : (
+              <div style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                padding: '20px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+                  💰 Faire une offre
+                </h3>
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
+                    Prix proposé (€)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="number"
+                      value={prixPropose}
+                      onChange={(e) => setPrixPropose(e.target.value)}
+                      placeholder={course.prix.toString()}
+                      min="1"
+                      max={course.prix}
+                      step="1"
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '18px',
+                        fontWeight: 'bold'
+                      }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                      Prix demandé : {course.prix}€
+                    </span>
+                  </div>
+                  {prixPropose && parseFloat(prixPropose) > course.prix ? (
+                    <p style={{ fontSize: '13px', color: '#dc2626', marginTop: '8px', fontWeight: '500' }}>
+                      ⚠️ Le prix ne peut pas dépasser {course.prix}€
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
+                      💡 Vous pouvez proposer un prix égal ou inférieur au prix demandé
+                    </p>
+                  )}
+                </div>
 
-              <button
-                onClick={handleCandidature}
-                disabled={candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)}
-                style={{
-                  width: '100%',
-                  backgroundColor: (prixPropose && parseFloat(prixPropose) > course.prix) ? '#9ca3af' : '#059669',
-                  color: 'white',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  border: 'none',
-                  cursor: (candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)) ? 'not-allowed' : 'pointer',
-                  opacity: candidatureLoading ? 0.7 : 1
-                }}
-              >
-                {candidatureLoading ? 'Envoi en cours...' : `🚗 Proposer ${prixPropose || course.prix}€`}
-              </button>
-            </div>
+                <button
+                  onClick={handleCandidature}
+                  disabled={candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: (prixPropose && parseFloat(prixPropose) > course.prix) ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    border: 'none',
+                    cursor: (candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)) ? 'not-allowed' : 'pointer',
+                    opacity: candidatureLoading ? 0.7 : 1
+                  }}
+                >
+                  {candidatureLoading ? 'Envoi en cours...' : `🚗 Proposer ${prixPropose || course.prix}€`}
+                </button>
+              </div>
+            )
           ) : (
             <div style={{
               backgroundColor: '#f3f4f6',

@@ -18,7 +18,8 @@ export default function Login() {
     password: '',
     nom: '',
     telephone: '',
-    type: 'membre'
+    type: 'membre',
+    acceptCGU: false
   })
 
   const handleChange = (e) => {
@@ -302,9 +303,42 @@ export default function Login() {
                   />
                 </div>
 
+                {/* Case CGU pour inscription */}
+                {!isLogin && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      name="acceptCGU"
+                      checked={formData.acceptCGU}
+                      onChange={(e) => setFormData({ ...formData, acceptCGU: e.target.checked })}
+                      style={{ marginTop: '4px' }}
+                      required
+                    />
+                    <label style={{ fontSize: '13px', color: '#374151' }}>
+                      J'ai lu et j'accepte les{' '}
+                      <a 
+                        href="/cgu" 
+                        target="_blank" 
+                        style={{ color: '#1e40af', textDecoration: 'underline' }}
+                      >
+                        Conditions Générales d'Utilisation
+                      </a>
+                      {' '}et la{' '}
+                      <a 
+                        href="/privacy" 
+                        target="_blank" 
+                        style={{ color: '#1e40af', textDecoration: 'underline' }}
+                      >
+                        Politique de Confidentialité
+                      </a>
+                      {' '}*
+                    </label>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (!isLogin && !formData.acceptCGU)}
                   style={{
                     width: '100%',
                     backgroundColor: '#111827',

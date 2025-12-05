@@ -10,6 +10,8 @@ import MyCandidatures from './pages/MyCandidatures'
 import RateCourse from './pages/RateCourse'
 import EditProfile from './pages/EditProfile'
 import AdminDashboard from './pages/AdminDashboard'
+import CGU from './pages/CGU'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 
 
@@ -29,6 +31,8 @@ function App() {
           <Route path="/rate/:id" element={<RateCourse />} />
           <Route path="/profile" element={<EditProfile />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/cgu" element={<CGU />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
       </AuthProvider>
     </Router>

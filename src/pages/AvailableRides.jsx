@@ -9,20 +9,24 @@ export default function AvailableRides() {
   const { user } = useAuth()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
+  const [userProfile, setUserProfile] = useState(null)
 
   useEffect(() => {
     fetchCourses()
-  }, [])
+    if (user) {
+      fetchUserProfile()
+    }
+  }, [user])
 
   const fetchCourses = async () => {
     try {
       const { data, error } = await supabase
-  .from('courses')
-  .select(`
-    *,
-    societe:users!societe_id (nom, note_moyenne),
-    candidatures (prix_propose)
-  `)
+        .from('courses')
+        .select(`
+          *,
+          societe:users!societe_id (nom, note_moyenne),
+          candidatures (prix_propose)
+        `)
         .eq('statut', 'disponible')
         .order('date_heure', { ascending: true })
 
@@ -32,6 +36,21 @@ export default function AvailableRides() {
       console.error('Erreur:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('valide')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setUserProfile(data)
+    } catch (error) {
+      console.error('Erreur profil:', error)
     }
   }
 
@@ -51,6 +70,8 @@ export default function AvailableRides() {
       minute: '2-digit'
     })
   }
+
+  const isValidated = userProfile?.valide === true
 
   if (loading) {
     return (
@@ -81,6 +102,36 @@ export default function AvailableRides() {
             {courses.length} course(s) disponible(s)
           </p>
         </div>
+
+        {/* Alerte profil non validé */}
+        {user && !isValidated && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <span style={{ fontSize: '24px' }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                Profil en attente de validation
+              </div>
+              <div style={{ fontSize: '13px', color: '#92400e' }}>
+                Vous pouvez consulter les courses, mais pour candidater, 
+                <a 
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
+                  style={{ color: '#92400e', fontWeight: '600', marginLeft: '4px' }}
+                >
+                  envoyez vos documents →
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {courses.length === 0 ? (
           <div style={{
@@ -139,27 +190,27 @@ export default function AvailableRides() {
                       {course.societe?.note_moyenne > 0 && ` • ⭐ ${course.societe.note_moyenne}/5`}
                     </div>
                   </div>
-<div style={{ textAlign: 'right' }}>
-  <div style={{
-    backgroundColor: '#ecfdf5',
-    color: '#059669',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    fontSize: '18px',
-    fontWeight: 'bold'
-  }}>
-    {course.prix}€
-  </div>
-  {course.candidatures && course.candidatures.length > 0 && (
-    <div style={{
-      fontSize: '12px',
-      color: '#6b7280',
-      marginTop: '4px'
-    }}>
-      🔥 Meilleure offre : {Math.min(...course.candidatures.map(c => c.prix_propose))}€
-    </div>
-  )}
-</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      backgroundColor: '#ecfdf5',
+                      color: '#059669',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '18px',
+                      fontWeight: 'bold'
+                    }}>
+                      {course.prix}€
+                    </div>
+                    {course.candidatures && course.candidatures.length > 0 && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginTop: '4px'
+                      }}>
+                        🔥 Meilleure offre : {Math.min(...course.candidatures.map(c => c.prix_propose))}€
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Détails */}

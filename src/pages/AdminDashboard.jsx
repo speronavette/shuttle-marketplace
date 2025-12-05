@@ -16,7 +16,9 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState([])
   const [societes, setSocietes] = useState([])
   const [chauffeurs, setChauffeurs] = useState([])
+  const [allUsers, setAllUsers] = useState([])
   const [activeTab, setActiveTab] = useState('global')
+  const [actionLoading, setActionLoading] = useState(null)
 
   // Vérifier si l'utilisateur est admin
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
@@ -57,6 +59,7 @@ export default function AdminDashboard() {
       setCourses(coursesData || [])
       setSocietes(societesData || [])
       setChauffeurs(chauffeursData || [])
+      setAllUsers(usersData || [])
 
       // Calculer les stats globales
       const totalCourses = coursesData?.length || 0
@@ -68,6 +71,8 @@ export default function AdminDashboard() {
       const totalCandidatures = coursesData?.reduce((acc, c) => acc + (c.candidatures?.length || 0), 0) || 0
       
       const prixTotal = coursesData?.filter(c => c.statut === 'terminee').reduce((acc, c) => acc + (c.prix || 0), 0) || 0
+
+      const usersNonValides = usersData?.filter(u => !u.valide).length || 0
 
       setStats({
         totalCourses,
@@ -81,13 +86,34 @@ export default function AdminDashboard() {
         totalSocietes: societesData?.length || 0,
         totalChauffeurs: chauffeursData?.length || 0,
         societesActives: new Set(coursesData?.map(c => c.societe_id)).size,
-        chauffeursActifs: new Set(coursesData?.flatMap(c => c.candidatures?.map(cand => cand.chauffeur_id) || [])).size
+        chauffeursActifs: new Set(coursesData?.flatMap(c => c.candidatures?.map(cand => cand.chauffeur_id) || [])).size,
+        usersNonValides
       })
 
     } catch (error) {
       console.error('Erreur:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleValidation = async (userId, currentStatus) => {
+    setActionLoading(userId)
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ valide: !currentStatus })
+        .eq('id', userId)
+
+      if (error) throw error
+
+      // Rafraîchir les données
+      await fetchAllData()
+      alert(currentStatus ? '❌ Utilisateur invalidé' : '✅ Utilisateur validé')
+    } catch (error) {
+      alert('Erreur: ' + error.message)
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -218,6 +244,14 @@ export default function AdminDashboard() {
     }
   }).sort((a, b) => b.coursesGagnees - a.coursesGagnees)
 
+  // Utilisateurs en attente de validation (non validés en premier)
+  const usersForValidation = [...allUsers].sort((a, b) => {
+    if (a.valide === b.valide) return new Date(b.created_at) - new Date(a.created_at)
+    return a.valide ? 1 : -1
+  })
+
+  const usersNonValides = allUsers.filter(u => !u.valide)
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <Header />
@@ -243,10 +277,12 @@ export default function AdminDashboard() {
           gap: '8px', 
           marginBottom: '24px',
           borderBottom: '2px solid #e5e7eb',
-          paddingBottom: '12px'
+          paddingBottom: '12px',
+          flexWrap: 'wrap'
         }}>
           {[
             { id: 'global', label: '📊 Vue globale' },
+            { id: 'validation', label: `✅ Validation ${usersNonValides.length > 0 ? `(${usersNonValides.length})` : ''}`, highlight: usersNonValides.length > 0 },
             { id: 'courses', label: '🚗 Courses' },
             { id: 'societes', label: '🏢 Sociétés' },
             { id: 'chauffeurs', label: '👤 Chauffeurs' }
@@ -258,8 +294,8 @@ export default function AdminDashboard() {
                 padding: '10px 20px',
                 borderRadius: '8px',
                 border: 'none',
-                backgroundColor: activeTab === tab.id ? '#111827' : '#f3f4f6',
-                color: activeTab === tab.id ? 'white' : '#374151',
+                backgroundColor: activeTab === tab.id ? '#111827' : tab.highlight ? '#fef2f2' : '#f3f4f6',
+                color: activeTab === tab.id ? 'white' : tab.highlight ? '#dc2626' : '#374151',
                 fontSize: '14px',
                 fontWeight: '500',
                 cursor: 'pointer'
@@ -273,6 +309,43 @@ export default function AdminDashboard() {
         {/* Contenu selon l'onglet */}
         {activeTab === 'global' && (
           <div>
+            {/* Alerte si utilisateurs non validés */}
+            {usersNonValides.length > 0 && (
+              <div style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
+                    ⚠️ {usersNonValides.length} utilisateur(s) en attente de validation
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveTab('validation')}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Voir les demandes
+                </button>
+              </div>
+            )}
+
             {/* Stats globales */}
             <div style={{
               display: 'grid',
@@ -315,6 +388,117 @@ export default function AdminDashboard() {
             }}>
               <StatCard label="Total candidatures" value={stats.totalCandidatures} icon="📨" color="#6366f1" />
               <StatCard label="Volume terminé" value={`${stats.prixTotal}€`} icon="💶" color="#059669" />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'validation' && (
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
+              ✅ Validation des profils ({allUsers.length} utilisateurs)
+            </h2>
+            
+            {usersNonValides.length > 0 && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                fontSize: '14px',
+                color: '#92400e'
+              }}>
+                ⏳ <strong>{usersNonValides.length}</strong> utilisateur(s) en attente de validation
+              </div>
+            )}
+
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f9fafb' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Nom</th>
+                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Email</th>
+                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Téléphone</th>
+                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Type</th>
+                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
+                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Inscrit le</th>
+                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersForValidation.map(u => (
+                      <tr 
+                        key={u.id} 
+                        style={{ 
+                          borderTop: '1px solid #e5e7eb',
+                          backgroundColor: !u.valide ? '#fefce8' : 'transparent'
+                        }}
+                      >
+                        <td style={{ padding: '12px', fontWeight: '500', color: '#111827' }}>
+                          {u.raison_sociale || u.nom}
+                        </td>
+                        <td style={{ padding: '12px', color: '#6b7280', fontSize: '13px' }}>
+                          {u.email}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
+                          {u.telephone || '-'}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <span style={{
+                            backgroundColor: u.type === 'societe' ? '#dbeafe' : u.type === 'chauffeur' ? '#f3e8ff' : '#f3f4f6',
+                            color: u.type === 'societe' ? '#1e40af' : u.type === 'chauffeur' ? '#7c3aed' : '#374151',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {u.type === 'societe' ? '🏢 Société' : u.type === 'chauffeur' ? '🚗 Chauffeur' : '👤 Membre'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <span style={{
+                            backgroundColor: u.valide ? '#ecfdf5' : '#fef2f2',
+                            color: u.valide ? '#059669' : '#dc2626',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {u.valide ? '✅ Validé' : '⏳ En attente'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center', color: '#6b7280' }}>
+                          {formatDate(u.created_at)}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <button
+                            onClick={() => handleToggleValidation(u.id, u.valide)}
+                            disabled={actionLoading === u.id}
+                            style={{
+                              backgroundColor: u.valide ? '#fef2f2' : '#ecfdf5',
+                              color: u.valide ? '#dc2626' : '#059669',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              opacity: actionLoading === u.id ? 0.5 : 1
+                            }}
+                          >
+                            {actionLoading === u.id ? '...' : u.valide ? '❌ Invalider' : '✅ Valider'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

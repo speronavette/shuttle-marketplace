@@ -83,7 +83,7 @@ export const sendNewCourseNotification = async ({ course, recipients }) => {
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://shuttle-marketplace.vercel.app/ride/${course.id}" 
+          <a href="https://shuttle-marketplace.be/ride/${course.id}" 
              style="background-color: #111827; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
             Voir la course
           </a>
@@ -157,7 +157,7 @@ export const sendCandidatureNotification = async ({ course, candidat, prixPropos
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://shuttle-marketplace.vercel.app/my-courses" 
+          <a href="https://shuttle-marketplace.be/my-courses" 
              style="background-color: #059669; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
             Voir les candidatures
           </a>
@@ -253,7 +253,7 @@ export const sendAcceptationNotification = async ({ course, chauffeurEmail, soci
         </div>
         
         <div style="text-align: center; margin-top: 30px;">
-          <a href="https://shuttle-marketplace.vercel.app/my-candidatures" 
+          <a href="https://shuttle-marketplace.be/my-candidatures" 
              style="background-color: #111827; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
             Voir mes candidatures
           </a>

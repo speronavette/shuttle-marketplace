@@ -9,6 +9,7 @@ import MyCourses from './pages/MyCourses'
 import MyCandidatures from './pages/MyCandidatures'
 import RateCourse from './pages/RateCourse'
 import EditProfile from './pages/EditProfile'
+import AdminDashboard from './pages/AdminDashboard'
 
 
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="/my-candidatures" element={<MyCandidatures />} />
           <Route path="/rate/:id" element={<RateCourse />} />
           <Route path="/profile" element={<EditProfile />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </AuthProvider>
     </Router>

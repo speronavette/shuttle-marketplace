@@ -68,7 +68,7 @@ serve(async (req) => {
         <div style="font-size: 14px; color: #6b7280;">
           📅 ${formatDate(course.date_heure)} • 🕐 ${formatTime(course.date_heure)} • 👥 ${course.nb_passagers} pers. • <span style="color: #059669; font-weight: bold;">💰 ${course.prix}€</span>
         </div>
-        <a href="https://shuttle-marketplace.vercel.app/ride/${course.id}" 
+        <a href="https://shuttle-marketplace.be/ride/${course.id}" 
            style="display: inline-block; margin-top: 12px; background-color: #111827; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px;">
           Voir la course
         </a>
@@ -85,7 +85,7 @@ serve(async (req) => {
           <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Voici les courses publiées dans les dernières 24 heures :</p>
           ${coursesHtml}
           <div style="text-align: center; margin-top: 30px;">
-            <a href="https://shuttle-marketplace.vercel.app/available-rides" 
+            <a href="https://shuttle-marketplace.be/available-rides" 
                style="background-color: #059669; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
               Voir toutes les courses
             </a>
@@ -97,7 +97,7 @@ serve(async (req) => {
       </div>
     `
 
-    const recipients = ['spero.navette@gmail.com']
+    const recipients = users.map(u => u.email)
     
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -106,7 +106,7 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Shuttle Marketplace <onboarding@resend.dev>',
+        from: 'Shuttle Marketplace <noreply@shuttle-marketplace.be>',
         to: recipients,
         subject: `📋 ${newCourses.length} nouvelle(s) course(s) disponible(s)`,
         html: html

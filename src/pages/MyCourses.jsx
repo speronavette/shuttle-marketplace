@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,6 +12,7 @@ export default function MyCourses() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
+  const [expandedCourse, setExpandedCourse] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -41,39 +42,6 @@ export default function MyCourses() {
       console.error('Erreur:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  // Fonction pour catégoriser les courses
-  const categoriserCourses = () => {
-    const now = new Date()
-    
-    const coursesAttribuees = []
-    const coursesDisponibles = []
-    const coursesTerminees = []
-    const coursesAnnulees = []
-
-    courses.forEach(course => {
-      if (course.statut === 'attribuee') {
-        coursesAttribuees.push(course)
-      } else if (course.statut === 'disponible') {
-        coursesDisponibles.push(course)
-      } else if (course.statut === 'terminee') {
-        coursesTerminees.push(course)
-      } else if (course.statut === 'annulee') {
-        coursesAnnulees.push(course)
-      }
-    })
-
-    // Trier par date
-    const sortByDate = (a, b) => new Date(a.date_heure) - new Date(b.date_heure)
-    const sortByDateDesc = (a, b) => new Date(b.date_heure) - new Date(a.date_heure)
-
-    return {
-      coursesAttribuees: coursesAttribuees.sort(sortByDate),
-      coursesDisponibles: coursesDisponibles.sort(sortByDate),
-      coursesTerminees: coursesTerminees.sort(sortByDateDesc),
-      coursesAnnulees: coursesAnnulees.sort(sortByDateDesc)
     }
   }
 
@@ -116,31 +84,11 @@ export default function MyCourses() {
           chauffeurEmail: chauffeur.email,
           societe
         })
-        console.log('📧 Notification d\'acceptation envoyée')
       }
 
       await fetchMyCourses()
+      setExpandedCourse(null)
       alert('✅ Chauffeur accepté avec succès !')
-    } catch (error) {
-      alert('❌ Erreur: ' + error.message)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const handleRefuseCandidature = async (candidatureId) => {
-    setActionLoading(`refuse-${candidatureId}`)
-    
-    try {
-      const { error } = await supabase
-        .from('candidatures')
-        .delete()
-        .eq('id', candidatureId)
-
-      if (error) throw error
-
-      await fetchMyCourses()
-      alert('Candidature refusée')
     } catch (error) {
       alert('❌ Erreur: ' + error.message)
     } finally {
@@ -187,318 +135,19 @@ export default function MyCourses() {
     })
   }
 
-  const getStatutStyle = (statut) => {
+  const getStatutBadge = (statut) => {
     switch (statut) {
       case 'disponible':
-        return { backgroundColor: '#fef3c7', color: '#d97706' }
+        return { label: '⏳ En attente', bg: '#fef3c7', color: '#d97706' }
       case 'attribuee':
-        return { backgroundColor: '#dbeafe', color: '#1e40af' }
+        return { label: '✅ Attribuée', bg: '#dbeafe', color: '#1e40af' }
       case 'terminee':
-        return { backgroundColor: '#f3f4f6', color: '#374151' }
+        return { label: '✓ Terminée', bg: '#f3f4f6', color: '#374151' }
       case 'annulee':
-        return { backgroundColor: '#fef2f2', color: '#dc2626' }
+        return { label: '❌ Annulée', bg: '#fef2f2', color: '#dc2626' }
       default:
-        return { backgroundColor: '#f3f4f6', color: '#374151' }
+        return { label: statut, bg: '#f3f4f6', color: '#374151' }
     }
-  }
-
-  const getStatutLabel = (statut) => {
-    switch (statut) {
-      case 'disponible': return '⏳ En attente'
-      case 'attribuee': return '✅ Attribuée'
-      case 'terminee': return '✓ Terminée'
-      case 'annulee': return '❌ Annulée'
-      default: return statut
-    }
-  }
-
-  // Composant pour afficher une carte de course
-  const CourseCard = ({ course }) => {
-    return (
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          border: course.statut === 'attribuee' ? '2px solid #1e40af' : '1px solid #e5e7eb',
-          padding: '20px'
-        }}
-      >
-        {/* En-tête */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-              {course.depart} → {course.arrivee}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-              📅 {formatDate(course.date_heure)} à {formatTime(course.date_heure)} • 👥 {course.nb_passagers} • 💰 {course.prix}€
-            </div>
-          </div>
-          <div style={{
-            ...getStatutStyle(course.statut),
-            padding: '6px 12px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '500'
-          }}>
-            {getStatutLabel(course.statut)}
-          </div>
-        </div>
-
-        {/* Chauffeur attribué */}
-        {course.chauffeur_attribue && (
-          <div style={{
-            backgroundColor: course.statut === 'terminee' ? '#f3f4f6' : '#eff6ff',
-            borderRadius: '8px',
-            padding: '12px',
-            marginBottom: '12px'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: course.statut === 'terminee' ? '#374151' : '#1e40af', marginBottom: '4px' }}>
-                  {course.statut === 'terminee' ? '✓ Course terminée' : '🚗 Chauffeur attribué'}
-                </div>
-                <div style={{ fontSize: '14px', color: course.statut === 'terminee' ? '#374151' : '#1e40af' }}>
-                  <div>{course.chauffeur_attribue.nom} • 📞 {course.chauffeur_attribue.telephone}</div>
-                  {course.chauffeur_attribue.raison_sociale && (
-                    <div style={{ marginTop: '4px', fontSize: '13px' }}>
-                      🏢 {course.chauffeur_attribue.raison_sociale}
-                      {course.chauffeur_attribue.numero_tva && ` • TVA: ${course.chauffeur_attribue.numero_tva}`}
-                    </div>
-                  )}
-                  {course.chauffeur_attribue.email_facturation && (
-                    <div style={{ marginTop: '2px', fontSize: '13px' }}>
-                      📧 {course.chauffeur_attribue.email_facturation}
-                    </div>
-                  )}
-                  {course.chauffeur_attribue.rue && (
-                    <div style={{ marginTop: '2px', fontSize: '13px' }}>
-                      📍 {course.chauffeur_attribue.rue} {course.chauffeur_attribue.numero}, {course.chauffeur_attribue.code_postal} {course.chauffeur_attribue.commune}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {course.statut === 'attribuee' && (
-                  <button
-                    onClick={() => handleTerminerCourse(course.id)}
-                    disabled={actionLoading === `terminer-${course.id}`}
-                    style={{
-                      backgroundColor: '#059669',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      border: 'none',
-                      cursor: 'pointer',
-                      opacity: actionLoading === `terminer-${course.id}` ? 0.7 : 1
-                    }}
-                  >
-                    ✓ Terminer la course
-                  </button>
-                )}
-                
-                {course.statut === 'terminee' && (
-                  <button
-                    onClick={() => navigate(`/rate/${course.id}`)}
-                    style={{
-                      backgroundColor: '#f59e0b',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ⭐ Noter le chauffeur
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Candidatures */}
-        {course.statut === 'disponible' && (
-          <div>
-            <div style={{ 
-              fontSize: '14px', 
-              fontWeight: '600', 
-              color: '#374151', 
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              Candidatures 
-              <span style={{
-                backgroundColor: course.candidatures?.length > 0 ? '#059669' : '#9ca3af',
-                color: 'white',
-                padding: '2px 8px',
-                borderRadius: '10px',
-                fontSize: '12px'
-              }}>
-                {course.candidatures?.length || 0}
-              </span>
-            </div>
-            
-            {course.candidatures?.length === 0 ? (
-              <p style={{ fontSize: '14px', color: '#9ca3af', fontStyle: 'italic' }}>
-                Aucune candidature pour le moment
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {[...course.candidatures]
-                  .sort((a, b) => a.prix_propose - b.prix_propose)
-                  .map((candidature) => {
-                    const isSousEnchere = candidature.prix_propose < course.prix
-                    const economie = course.prix - candidature.prix_propose
-                    
-                    return (
-                      <div
-                        key={candidature.id}
-                        style={{
-                          backgroundColor: '#f9fafb',
-                          borderRadius: '8px',
-                          padding: '12px',
-                          border: isSousEnchere ? '2px solid #059669' : '1px solid #e5e7eb'
-                        }}
-                      >
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          marginBottom: '12px'
-                        }}>
-                          <div>
-                            <div style={{ fontSize: '15px', fontWeight: '500', color: '#111827' }}>
-                              {candidature.chauffeur?.nom}
-                            </div>
-                            <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                              📞 {candidature.chauffeur?.telephone} • 
-                              ⭐ {candidature.chauffeur?.note_moyenne_chauffeur > 0 ? `${candidature.chauffeur.note_moyenne_chauffeur}/5` : 'Nouveau'} • 
-                              🚗 {candidature.chauffeur?.nb_courses_chauffeur || 0} courses
-                            </div>
-                          </div>
-                          
-                          <div style={{
-                            backgroundColor: isSousEnchere ? '#ecfdf5' : '#f3f4f6',
-                            color: isSousEnchere ? '#059669' : '#374151',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            textAlign: 'center'
-                          }}>
-                            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                              {candidature.prix_propose}€
-                            </div>
-                            {isSousEnchere && (
-                              <div style={{ fontSize: '11px', color: '#059669' }}>
-                                -{economie}€
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, candidature.prix_propose)}
-                            disabled={actionLoading === `accept-${course.id}-${candidature.chauffeur?.id}`}
-                            style={{
-                              flex: 1,
-                              backgroundColor: '#059669',
-                              color: 'white',
-                              padding: '10px 16px',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              border: 'none',
-                              cursor: 'pointer',
-                              opacity: actionLoading ? 0.7 : 1
-                            }}
-                          >
-                            ✓ Accepter à {candidature.prix_propose}€
-                          </button>
-                          <button
-                            onClick={() => handleRefuseCandidature(candidature.id)}
-                            disabled={actionLoading === `refuse-${candidature.id}`}
-                            style={{
-                              backgroundColor: '#fef2f2',
-                              color: '#dc2626',
-                              padding: '10px 16px',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              border: 'none',
-                              cursor: 'pointer',
-                              opacity: actionLoading ? 0.7 : 1
-                            }}
-                          >
-                            ✗ Refuser
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Composant pour afficher une section
-  const Section = ({ title, icon, count, color, bgColor, children }) => {
-    if (count === 0) return null
-    
-    return (
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          marginBottom: '16px'
-        }}>
-          <div style={{
-            backgroundColor: bgColor,
-            color: color,
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <span>{icon}</span>
-            <span>{title}</span>
-            <span style={{
-              backgroundColor: color,
-              color: 'white',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 'bold'
-            }}>
-              {count}
-            </span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {children}
-        </div>
-      </div>
-    )
   }
 
   if (loading) {
@@ -512,30 +161,45 @@ export default function MyCourses() {
     )
   }
 
-  const { 
-    coursesAttribuees, 
-    coursesDisponibles, 
-    coursesTerminees, 
-    coursesAnnulees 
-  } = categoriserCourses()
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <Header />
 
       <main style={{
-        maxWidth: '600px',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: '32px 16px'
+        padding: '24px 16px'
       }}>
-        {/* Titre */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-            Mes courses publiées
-          </h1>
-          <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>
-            {courses.length} course(s) au total
-          </p>
+        {/* En-tête */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+              Mes publications
+            </h1>
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+              {courses.length} course{courses.length > 1 ? 's' : ''} publiée{courses.length > 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/publish-ride')}
+            style={{
+              backgroundColor: '#111827',
+              color: 'white',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            + Nouvelle course
+          </button>
         </div>
 
         {courses.length === 0 ? (
@@ -547,6 +211,7 @@ export default function MyCourses() {
             padding: '48px 24px',
             textAlign: 'center'
           }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
             <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '16px' }}>
               Vous n'avez pas encore publié de course
             </p>
@@ -567,51 +232,238 @@ export default function MyCourses() {
             </button>
           </div>
         ) : (
-          <>
-            {/* Section 1: Courses attribuées (à effectuer) */}
-            <Section 
-              title="Courses attribuées" 
-              icon="🚗" 
-              count={coursesAttribuees.length}
-              color="#1e40af"
-              bgColor="#dbeafe"
-            >
-              {coursesAttribuees.map(c => <CourseCard key={c.id} course={c} />)}
-            </Section>
-
-            {/* Section 2: Courses en attente de candidatures */}
-            <Section 
-              title="En attente de chauffeur" 
-              icon="⏳" 
-              count={coursesDisponibles.length}
-              color="#d97706"
-              bgColor="#fef3c7"
-            >
-              {coursesDisponibles.map(c => <CourseCard key={c.id} course={c} />)}
-            </Section>
-
-            {/* Section 3: Courses terminées */}
-            <Section 
-              title="Courses terminées" 
-              icon="✅" 
-              count={coursesTerminees.length}
-              color="#374151"
-              bgColor="#f3f4f6"
-            >
-              {coursesTerminees.map(c => <CourseCard key={c.id} course={c} />)}
-            </Section>
-
-            {/* Section 4: Courses annulées */}
-            <Section 
-              title="Courses annulées" 
-              icon="❌" 
-              count={coursesAnnulees.length}
-              color="#dc2626"
-              bgColor="#fef2f2"
-            >
-              {coursesAnnulees.map(c => <CourseCard key={c.id} course={c} />)}
-            </Section>
-          </>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden'
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                fontSize: '14px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Date</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Candidats</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courses.map((course, index) => {
+                    const statut = getStatutBadge(course.statut)
+                    const isExpanded = expandedCourse === course.id
+                    const hasCandidatures = course.candidatures?.length > 0
+                    
+return (
+                      <React.Fragment key={course.id}>
+                        <tr
+                          style={{ 
+                            borderBottom: isExpanded ? 'none' : '1px solid #e5e7eb',
+                            backgroundColor: index % 2 === 0 ? 'white' : '#fafafa',
+                            transition: 'background-color 0.15s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? 'white' : '#fafafa'}
+                        >
+                          <td style={{ padding: '14px 16px', color: '#111827', fontWeight: '500' }}>
+                            {formatDate(course.date_heure)}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#111827' }}>
+                            {formatTime(course.date_heure)}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: '600', color: '#111827' }}>
+                              {course.depart}
+                            </div>
+                            <div style={{ color: '#6b7280', fontSize: '13px' }}>
+                              → {course.arrivee}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center', color: '#111827' }}>
+                            {course.nb_passagers}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <span style={{
+                              backgroundColor: '#ecfdf5',
+                              color: '#059669',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '15px'
+                            }}>
+                              {course.prix}€
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: statut.bg,
+                              color: statut.color,
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '500'
+                            }}>
+                              {statut.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            {course.statut === 'disponible' ? (
+                              <span style={{
+                                backgroundColor: hasCandidatures ? '#dbeafe' : '#f3f4f6',
+                                color: hasCandidatures ? '#1e40af' : '#6b7280',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                fontSize: '13px',
+                                fontWeight: '600'
+                              }}>
+                                {course.candidatures?.length || 0}
+                              </span>
+                            ) : course.chauffeur_attribue ? (
+                              <span style={{ fontSize: '13px', color: '#059669' }}>
+                                {course.chauffeur_attribue.nom}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            {course.statut === 'disponible' && hasCandidatures ? (
+                              <button
+                                onClick={() => setExpandedCourse(isExpanded ? null : course.id)}
+                                style={{
+                                  backgroundColor: '#1e40af',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {isExpanded ? '▲ Fermer' : '▼ Choisir'}
+                              </button>
+                            ) : course.statut === 'disponible' ? (
+                              <span style={{ color: '#9ca3af', fontSize: '13px' }}>
+                                En attente...
+                              </span>
+                            ) : course.statut === 'attribuee' ? (
+                              <button
+                                onClick={() => handleTerminerCourse(course.id)}
+                                disabled={actionLoading === `terminer-${course.id}`}
+                                style={{
+                                  backgroundColor: '#059669',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  opacity: actionLoading === `terminer-${course.id}` ? 0.7 : 1
+                                }}
+                              >
+                                ✓ Terminer
+                              </button>
+                            ) : course.statut === 'terminee' ? (
+                              <button
+                                onClick={() => navigate(`/rate/${course.id}`)}
+                                style={{
+                                  backgroundColor: '#f59e0b',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ⭐ Noter
+                              </button>
+                            ) : '-'}
+                          </td>
+                        </tr>
+                        
+                        {/* Ligne expandable pour les candidatures */}
+                        {isExpanded && (
+                          <tr key={`${course.id}-expanded`}>
+                            <td colSpan="8" style={{ 
+                              padding: '0',
+                              backgroundColor: '#f0f9ff',
+                              borderBottom: '1px solid #e5e7eb'
+                            }}>
+                              <div style={{ padding: '16px 24px' }}>
+                                <div style={{ 
+                                  fontSize: '14px', 
+                                  fontWeight: '600', 
+                                  color: '#1e40af', 
+                                  marginBottom: '12px' 
+                                }}>
+                                  Choisir un chauffeur parmi {course.candidatures?.length} candidature(s)
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {course.candidatures?.map((candidature) => (
+                                    <div
+                                      key={candidature.id}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        backgroundColor: 'white',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e5e7eb'
+                                      }}
+                                    >
+                                      <div>
+                                        <div style={{ fontWeight: '600', color: '#111827' }}>
+                                          {candidature.chauffeur?.nom}
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                                          📞 {candidature.chauffeur?.telephone} • 
+                                          ⭐ {candidature.chauffeur?.note_moyenne_chauffeur > 0 ? `${candidature.chauffeur.note_moyenne_chauffeur}/5` : 'Nouveau'} • 
+                                          🚗 {candidature.chauffeur?.nb_courses_chauffeur || 0} courses
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, course.prix)}
+                                        disabled={actionLoading === `accept-${course.id}-${candidature.chauffeur?.id}`}
+                                        style={{
+                                          backgroundColor: '#059669',
+                                          color: 'white',
+                                          padding: '10px 20px',
+                                          borderRadius: '6px',
+                                          fontSize: '14px',
+                                          fontWeight: '500',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          opacity: actionLoading ? 0.7 : 1
+                                        }}
+                                      >
+                                        ✓ Accepter
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </main>
     </div>

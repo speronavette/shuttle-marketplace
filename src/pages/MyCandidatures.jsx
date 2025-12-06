@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,9 +10,8 @@ export default function MyCandidatures() {
   
   const [candidatures, setCandidatures] = useState([])
   const [loading, setLoading] = useState(true)
-  const [editingId, setEditingId] = useState(null)
-  const [newPrice, setNewPrice] = useState('')
-  const [updateLoading, setUpdateLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState(null)
+  const [expandedCandidature, setExpandedCandidature] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -62,55 +61,11 @@ export default function MyCandidatures() {
     }
   }
 
-  // Fonction pour catégoriser les candidatures
-  const categoriserCandidatures = () => {
-    const now = new Date()
-    
-    const coursesAttribueesAVenir = []
-    const candidaturesEnAttente = []
-    const coursesTerminees = []
-    const candidaturesNonRetenues = []
-
-    candidatures.forEach(candidature => {
-      const course = candidature.course
-      const dateHeure = new Date(course.date_heure)
-      const isAttributedToMe = course.chauffeur_attribue_id === user.id
-
-      if (course.statut === 'attribuee' && isAttributedToMe) {
-        // Course attribuée à moi et pas encore passée
-        if (dateHeure > now) {
-          coursesAttribueesAVenir.push(candidature)
-        } else {
-          // La date est passée mais pas encore marquée terminée
-          coursesAttribueesAVenir.push(candidature)
-        }
-      } else if (course.statut === 'terminee' && isAttributedToMe) {
-        coursesTerminees.push(candidature)
-      } else if (course.statut === 'attribuee' && !isAttributedToMe) {
-        candidaturesNonRetenues.push(candidature)
-      } else if (course.statut === 'disponible') {
-        candidaturesEnAttente.push(candidature)
-      } else {
-        // Autres cas (annulée, etc.)
-        candidaturesNonRetenues.push(candidature)
-      }
-    })
-
-    // Trier par date au sein de chaque catégorie
-    const sortByDate = (a, b) => new Date(a.course.date_heure) - new Date(b.course.date_heure)
-    const sortByDateDesc = (a, b) => new Date(b.course.date_heure) - new Date(a.course.date_heure)
-
-    return {
-      coursesAttribueesAVenir: coursesAttribueesAVenir.sort(sortByDate),
-      candidaturesEnAttente: candidaturesEnAttente.sort(sortByDate),
-      coursesTerminees: coursesTerminees.sort(sortByDateDesc),
-      candidaturesNonRetenues: candidaturesNonRetenues.sort(sortByDateDesc)
-    }
-  }
-
   const handleAnnulerCandidature = async (candidatureId) => {
     if (!confirm('Voulez-vous vraiment annuler cette candidature ?')) return
 
+    setActionLoading(`annuler-${candidatureId}`)
+    
     try {
       const { error } = await supabase
         .from('candidatures')
@@ -123,55 +78,8 @@ export default function MyCandidatures() {
       alert('Candidature annulée')
     } catch (error) {
       alert('Erreur: ' + error.message)
-    }
-  }
-
-  const handleStartEdit = (candidature) => {
-    setEditingId(candidature.id)
-    setNewPrice(candidature.prix_propose.toString())
-  }
-
-  const handleCancelEdit = () => {
-    setEditingId(null)
-    setNewPrice('')
-  }
-
-  const handleUpdatePrice = async (candidature) => {
-    const nouveauPrix = parseFloat(newPrice)
-    
-    if (isNaN(nouveauPrix) || nouveauPrix <= 0) {
-      alert('⚠️ Veuillez entrer un prix valide')
-      return
-    }
-    
-    if (nouveauPrix >= candidature.prix_propose) {
-      alert('⚠️ Le nouveau prix doit être inférieur à votre offre actuelle (' + candidature.prix_propose + '€)')
-      return
-    }
-    
-    if (nouveauPrix > candidature.course.prix) {
-      alert('⚠️ Le prix ne peut pas dépasser le prix demandé (' + candidature.course.prix + '€)')
-      return
-    }
-
-    setUpdateLoading(true)
-    
-    try {
-      const { error } = await supabase
-        .from('candidatures')
-        .update({ prix_propose: nouveauPrix })
-        .eq('id', candidature.id)
-
-      if (error) throw error
-
-      await fetchMyCandidatures()
-      setEditingId(null)
-      setNewPrice('')
-      alert('✅ Offre mise à jour : ' + nouveauPrix + '€')
-    } catch (error) {
-      alert('❌ Erreur: ' + error.message)
     } finally {
-      setUpdateLoading(false)
+      setActionLoading(null)
     }
   }
 
@@ -192,18 +100,20 @@ export default function MyCandidatures() {
     })
   }
 
-  const getStatutCandidature = (candidature) => {
+  const getStatutBadge = (candidature) => {
     const course = candidature.course
-    
-    if (course.statut === 'attribuee' && course.chauffeur_attribue_id === user.id) {
-      return { label: '✅ Acceptée', style: { backgroundColor: '#ecfdf5', color: '#059669' } }
-    } else if (course.statut === 'attribuee' && course.chauffeur_attribue_id !== user.id) {
-      return { label: '❌ Non retenue', style: { backgroundColor: '#fef2f2', color: '#dc2626' } }
-    } else if (course.statut === 'terminee') {
-      return { label: '✓ Terminée', style: { backgroundColor: '#f3f4f6', color: '#374151' } }
-    } else {
-      return { label: '⏳ En attente', style: { backgroundColor: '#fef3c7', color: '#92400e' } }
+    const isAttributedToMe = course.chauffeur_attribue_id === user.id
+
+    if (course.statut === 'attribuee' && isAttributedToMe) {
+      return { label: '✅ Acceptée', bg: '#ecfdf5', color: '#059669' }
+    } else if (course.statut === 'attribuee' && !isAttributedToMe) {
+      return { label: '❌ Non retenue', bg: '#fef2f2', color: '#dc2626' }
+    } else if (course.statut === 'terminee' && isAttributedToMe) {
+      return { label: '✓ Terminée', bg: '#f3f4f6', color: '#374151' }
+    } else if (course.statut === 'disponible') {
+      return { label: '⏳ En attente', bg: '#fef3c7', color: '#d97706' }
     }
+    return { label: course.statut, bg: '#f3f4f6', color: '#374151' }
   }
 
   const getModeReglement = (mode) => {
@@ -213,409 +123,6 @@ export default function MyCandidatures() {
       case 'carte': return '💳 Carte bancaire'
       default: return mode
     }
-  }
-
-  // Composant pour afficher une carte de candidature
-  const CandidatureCard = ({ candidature }) => {
-    const statut = getStatutCandidature(candidature)
-    const course = candidature.course
-    const isEditing = editingId === candidature.id
-    const isAttributedToMe = course.chauffeur_attribue_id === user.id
-
-    return (
-      <div
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          border: isAttributedToMe && course.statut === 'attribuee' ? '2px solid #059669' : '1px solid #e5e7eb',
-          padding: '20px'
-        }}
-      >
-        {/* En-tête */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-              {course.depart} → {course.arrivee}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-              📅 {formatDate(course.date_heure)} à {formatTime(course.date_heure)}
-            </div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '2px' }}>
-              👥 {course.nb_passagers} passager(s) • 🏢 {course.societe?.nom}
-            </div>
-          </div>
-          <div style={{
-            ...statut.style,
-            padding: '6px 12px',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '500'
-          }}>
-            {statut.label}
-          </div>
-        </div>
-
-        {/* Mon offre vs Prix demandé */}
-        {course.statut === 'disponible' && (
-          <div style={{
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            padding: '12px',
-            marginBottom: '12px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Prix demandé</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#374151' }}>{course.prix}€</div>
-              </div>
-              
-              <div style={{ fontSize: '20px', color: '#9ca3af' }}>→</div>
-              
-              <div style={{ 
-                textAlign: 'center', 
-                flex: 1,
-                backgroundColor: candidature.prix_propose < course.prix ? '#ecfdf5' : '#f3f4f6',
-                padding: '8px',
-                borderRadius: '8px',
-                border: candidature.prix_propose < course.prix ? '2px solid #059669' : 'none'
-              }}>
-                <div style={{ fontSize: '12px', color: candidature.prix_propose < course.prix ? '#059669' : '#6b7280' }}>
-                  Mon offre
-                </div>
-                <div style={{ 
-                  fontSize: '20px', 
-                  fontWeight: 'bold', 
-                  color: candidature.prix_propose < course.prix ? '#059669' : '#374151' 
-                }}>
-                  {candidature.prix_propose}€
-                </div>
-                {candidature.prix_propose < course.prix && (
-                  <div style={{ fontSize: '11px', color: '#059669' }}>
-                    -{course.prix - candidature.prix_propose}€
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Zone de modification */}
-            {isEditing ? (
-              <div style={{ 
-                marginTop: '12px', 
-                paddingTop: '12px', 
-                borderTop: '1px solid #e5e7eb' 
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  💰 Modifier mon offre (à la baisse uniquement)
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    max={candidature.prix_propose - 1}
-                    min="1"
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                    placeholder="Nouveau prix"
-                  />
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>€</span>
-                </div>
-                {newPrice && parseFloat(newPrice) >= candidature.prix_propose && (
-                  <p style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
-                    ⚠️ Le prix doit être inférieur à {candidature.prix_propose}€
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                  <button
-                    onClick={() => handleUpdatePrice(candidature)}
-                    disabled={updateLoading || !newPrice || parseFloat(newPrice) >= candidature.prix_propose}
-                    style={{
-                      flex: 1,
-                      backgroundColor: (!newPrice || parseFloat(newPrice) >= candidature.prix_propose) ? '#9ca3af' : '#059669',
-                      color: 'white',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      border: 'none',
-                      cursor: (!newPrice || parseFloat(newPrice) >= candidature.prix_propose) ? 'not-allowed' : 'pointer',
-                      opacity: updateLoading ? 0.7 : 1
-                    }}
-                  >
-                    {updateLoading ? 'Mise à jour...' : `✓ Confirmer ${newPrice || '...'}€`}
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    style={{
-                      backgroundColor: '#f3f4f6',
-                      color: '#374151',
-                      padding: '10px 16px',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleStartEdit(candidature)}
-                style={{
-                  width: '100%',
-                  marginTop: '12px',
-                  backgroundColor: '#dbeafe',
-                  color: '#1e40af',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                📉 Baisser mon offre
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Détails complets si accepté */}
-        {course.statut === 'attribuee' && isAttributedToMe && (
-          <div style={{
-            backgroundColor: '#ecfdf5',
-            borderRadius: '8px',
-            padding: '16px',
-            marginTop: '12px'
-          }}>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#059669', marginBottom: '12px' }}>
-              🎉 Course attribuée - Détails complets
-            </div>
-            
-            {/* Prix accepté */}
-            <div style={{
-              backgroundColor: '#d1fae5',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              marginBottom: '12px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#065f46',
-              textAlign: 'center'
-            }}>
-              💰 Prix accepté : {course.prix}€
-            </div>
-            
-            {/* Adresses */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '14px', color: '#065f46' }}>
-              <div><strong>📍 Départ :</strong> {course.adresse_depart || 'Non précisée'}</div>
-              <div><strong>📍 Arrivée :</strong> {course.adresse_arrivee || 'Non précisée'}</div>
-              <div><strong>🧳 Bagages :</strong> {course.nb_bagages || 0}</div>
-              <div><strong>🚗 Type :</strong> {course.type_course === 'privee' ? 'Privée' : 'Partagée'}</div>
-              <div><strong>💳 Règlement :</strong> {getModeReglement(course.mode_reglement)}</div>
-              {course.prix_initial && (
-                <div><strong>💰 Prix client :</strong> {course.prix_initial}€</div>
-              )}
-            </div>
-
-            {/* Infos client/passager */}
-            {(course.client_nom || course.client_prenom || course.client_telephone) && (
-              <div style={{ 
-                backgroundColor: '#dbeafe', 
-                borderRadius: '8px', 
-                padding: '16px', 
-                marginTop: '12px'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
-                  👤 Passager à prendre en charge
-                </div>
-                <div style={{ fontSize: '15px', color: '#1e40af' }}>
-                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>
-                    {course.client_prenom} {course.client_nom}
-                  </div>
-                  {course.client_telephone && (
-                    <div>
-                      📞 <a href={`tel:${course.client_telephone}`} style={{ color: '#1e40af' }}>
-                        {course.client_telephone}
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Infos vol */}
-            {(course.numero_vol || course.provenance_destination_vol) && (
-              <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#d1fae5', borderRadius: '6px', fontSize: '14px', color: '#065f46' }}>
-                {course.numero_vol && <div><strong>✈️ Vol :</strong> {course.numero_vol}</div>}
-                {course.provenance_destination_vol && <div><strong>🌍 Provenance/Dest :</strong> {course.provenance_destination_vol}</div>}
-              </div>
-            )}
-
-            {/* Commentaires */}
-            {course.commentaires && (
-              <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#fef3c7', borderRadius: '6px', fontSize: '14px', color: '#92400e' }}>
-                <strong>📝 Instructions :</strong> {course.commentaires}
-              </div>
-            )}
-
-            {/* Infos de facturation de la société */}
-            <div style={{ 
-              marginTop: '16px', 
-              paddingTop: '16px', 
-              borderTop: '2px solid #a7f3d0'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#065f46', marginBottom: '12px' }}>
-                🏢 Informations de facturation
-              </div>
-              
-              <div style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '8px', 
-                padding: '12px',
-                fontSize: '14px',
-                color: '#065f46'
-              }}>
-                <div style={{ fontWeight: '600', fontSize: '15px', marginBottom: '8px' }}>
-                  {course.societe?.raison_sociale || course.societe?.nom}
-                </div>
-                
-                {course.societe?.numero_tva && (
-                  <div style={{ marginBottom: '4px' }}>
-                    <strong>TVA :</strong> {course.societe.numero_tva}
-                  </div>
-                )}
-                
-                {(course.societe?.rue || course.societe?.commune) && (
-                  <div style={{ marginBottom: '4px' }}>
-                    <strong>Adresse :</strong> {course.societe.rue} {course.societe.numero}, {course.societe.code_postal} {course.societe.commune}
-                  </div>
-                )}
-                
-                <div style={{ marginBottom: '4px' }}>
-                  <strong>📞 Téléphone :</strong> {course.societe?.telephone}
-                </div>
-                
-                {course.societe?.email_facturation && (
-                  <div>
-                    <strong>📧 Email facturation :</strong> {course.societe.email_facturation}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-          {course.statut === 'disponible' && (
-            <button
-              onClick={() => handleAnnulerCandidature(candidature.id)}
-              style={{
-                backgroundColor: '#fef2f2',
-                color: '#dc2626',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Annuler ma candidature
-            </button>
-          )}
-          
-          {course.statut === 'terminee' && course.chauffeur_attribue_id === user.id && (
-            <button
-              onClick={() => navigate(`/rate/${course.id}`)}
-              style={{
-                backgroundColor: '#f59e0b',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              ⭐ Noter la société
-            </button>
-          )}
-          
-          <button
-            onClick={() => navigate(`/ride/${course.id}`)}
-            style={{
-              backgroundColor: '#f3f4f6',
-              color: '#374151',
-              padding: '8px 16px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            Voir détails
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Composant pour afficher une section
-  const Section = ({ title, icon, count, color, bgColor, children }) => {
-    if (count === 0) return null
-    
-    return (
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px',
-          marginBottom: '16px'
-        }}>
-          <div style={{
-            backgroundColor: bgColor,
-            color: color,
-            padding: '8px 16px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <span>{icon}</span>
-            <span>{title}</span>
-            <span style={{
-              backgroundColor: color,
-              color: 'white',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 'bold'
-            }}>
-              {count}
-            </span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {children}
-        </div>
-      </div>
-    )
   }
 
   if (loading) {
@@ -629,30 +136,45 @@ export default function MyCandidatures() {
     )
   }
 
-  const { 
-    coursesAttribueesAVenir, 
-    candidaturesEnAttente, 
-    coursesTerminees, 
-    candidaturesNonRetenues 
-  } = categoriserCandidatures()
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
       <Header />
 
       <main style={{
-        maxWidth: '600px',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: '32px 16px'
+        padding: '24px 16px'
       }}>
-        {/* Titre */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-            Mes candidatures
-          </h1>
-          <p style={{ fontSize: '15px', color: '#6b7280', margin: 0 }}>
-            {candidatures.length} candidature(s) au total
-          </p>
+        {/* En-tête */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+              Mes candidatures
+            </h1>
+            <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
+              {candidatures.length} candidature{candidatures.length > 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/available-rides')}
+            style={{
+              backgroundColor: '#111827',
+              color: 'white',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            Voir les courses
+          </button>
         </div>
 
         {candidatures.length === 0 ? (
@@ -664,6 +186,7 @@ export default function MyCandidatures() {
             padding: '48px 24px',
             textAlign: 'center'
           }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📨</div>
             <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '16px' }}>
               Vous n'avez pas encore candidaté pour une course
             </p>
@@ -684,51 +207,289 @@ export default function MyCandidatures() {
             </button>
           </div>
         ) : (
-          <>
-            {/* Section 1: Courses attribuées à venir */}
-            <Section 
-              title="Courses à effectuer" 
-              icon="🚗" 
-              count={coursesAttribueesAVenir.length}
-              color="#059669"
-              bgColor="#ecfdf5"
-            >
-              {coursesAttribueesAVenir.map(c => <CandidatureCard key={c.id} candidature={c} />)}
-            </Section>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden'
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                fontSize: '14px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Date</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Société</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {candidatures.map((candidature, index) => {
+                    const course = candidature.course
+                    const statut = getStatutBadge(candidature)
+                    const isExpanded = expandedCandidature === candidature.id
+                    const isAttributedToMe = course.chauffeur_attribue_id === user.id
+                    const canExpand = isAttributedToMe && (course.statut === 'attribuee' || course.statut === 'terminee')
+                    
+return (
+                      <React.Fragment key={candidature.id}>
+                        <tr
+                          style={{ 
+                            borderBottom: isExpanded ? 'none' : '1px solid #e5e7eb',
+                            backgroundColor: index % 2 === 0 ? 'white' : '#fafafa',
+                            transition: 'background-color 0.15s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f0f9ff'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? 'white' : '#fafafa'}
+                        >
+                          <td style={{ padding: '14px 16px', color: '#111827', fontWeight: '500' }}>
+                            {formatDate(course.date_heure)}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#111827' }}>
+                            {formatTime(course.date_heure)}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ fontWeight: '600', color: '#111827' }}>
+                              {course.depart}
+                            </div>
+                            <div style={{ color: '#6b7280', fontSize: '13px' }}>
+                              → {course.arrivee}
+                            </div>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center', color: '#111827' }}>
+                            {course.nb_passagers}
+                          </td>
+                          <td style={{ padding: '14px 16px', color: '#6b7280' }}>
+                            <div>{course.societe?.nom || '-'}</div>
+                            {course.societe?.note_moyenne > 0 && (
+                              <div style={{ fontSize: '12px', color: '#f59e0b' }}>
+                                ⭐ {course.societe.note_moyenne}/5
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                            <span style={{
+                              backgroundColor: '#ecfdf5',
+                              color: '#059669',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontWeight: 'bold',
+                              fontSize: '15px'
+                            }}>
+                              {course.prix}€
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <span style={{
+                              backgroundColor: statut.bg,
+                              color: statut.color,
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '500'
+                            }}>
+                              {statut.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            {course.statut === 'disponible' ? (
+                              <button
+                                onClick={() => handleAnnulerCandidature(candidature.id)}
+                                disabled={actionLoading === `annuler-${candidature.id}`}
+                                style={{
+                                  backgroundColor: '#fef2f2',
+                                  color: '#dc2626',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  opacity: actionLoading === `annuler-${candidature.id}` ? 0.7 : 1
+                                }}
+                              >
+                                Annuler
+                              </button>
+                            ) : canExpand ? (
+                              <button
+                                onClick={() => setExpandedCandidature(isExpanded ? null : candidature.id)}
+                                style={{
+                                  backgroundColor: '#059669',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {isExpanded ? '▲ Fermer' : '▼ Détails'}
+                              </button>
+                            ) : course.statut === 'terminee' && isAttributedToMe ? (
+                              <button
+                                onClick={() => navigate(`/rate/${course.id}`)}
+                                style={{
+                                  backgroundColor: '#f59e0b',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ⭐ Noter
+                              </button>
+                            ) : (
+                              <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
+                            )}
+                          </td>
+                        </tr>
+                        
+                        {/* Ligne expandable pour les détails */}
+                        {isExpanded && canExpand && (
+                          <tr key={`${candidature.id}-expanded`}>
+                            <td colSpan="8" style={{ 
+                              padding: '0',
+                              backgroundColor: '#ecfdf5',
+                              borderBottom: '1px solid #e5e7eb'
+                            }}>
+                              <div style={{ padding: '20px 24px' }}>
+                                <div style={{ 
+                                  fontSize: '15px', 
+                                  fontWeight: '600', 
+                                  color: '#059669', 
+                                  marginBottom: '16px' 
+                                }}>
+                                  🎉 Détails de la course
+                                </div>
+                                
+                                <div style={{ 
+                                  display: 'grid', 
+                                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                                  gap: '16px' 
+                                }}>
+                                  {/* Adresses */}
+                                  <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #a7f3d0'
+                                  }}>
+                                    <div style={{ fontWeight: '600', color: '#065f46', marginBottom: '8px' }}>📍 Adresses</div>
+                                    <div style={{ fontSize: '14px', color: '#065f46' }}>
+                                      <div><strong>Départ :</strong> {course.adresse_depart || course.depart}</div>
+                                      <div style={{ marginTop: '4px' }}><strong>Arrivée :</strong> {course.adresse_arrivee || course.arrivee}</div>
+                                    </div>
+                                  </div>
 
-            {/* Section 2: Candidatures en attente */}
-            <Section 
-              title="En attente de réponse" 
-              icon="⏳" 
-              count={candidaturesEnAttente.length}
-              color="#d97706"
-              bgColor="#fef3c7"
-            >
-              {candidaturesEnAttente.map(c => <CandidatureCard key={c.id} candidature={c} />)}
-            </Section>
+                                  {/* Passager */}
+                                  {(course.client_nom || course.client_telephone) && (
+                                    <div style={{
+                                      backgroundColor: '#dbeafe',
+                                      padding: '16px',
+                                      borderRadius: '8px'
+                                    }}>
+                                      <div style={{ fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>👤 Passager</div>
+                                      <div style={{ fontSize: '14px', color: '#1e40af' }}>
+                                        <div style={{ fontWeight: '600' }}>{course.client_prenom} {course.client_nom}</div>
+                                        {course.client_telephone && (
+                                          <div>📞 <a href={`tel:${course.client_telephone}`} style={{ color: '#1e40af' }}>{course.client_telephone}</a></div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
 
-            {/* Section 3: Courses terminées */}
-            <Section 
-              title="Courses terminées" 
-              icon="✅" 
-              count={coursesTerminees.length}
-              color="#374151"
-              bgColor="#f3f4f6"
-            >
-              {coursesTerminees.map(c => <CandidatureCard key={c.id} candidature={c} />)}
-            </Section>
+                                  {/* Infos course */}
+                                  <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #a7f3d0'
+                                  }}>
+                                    <div style={{ fontWeight: '600', color: '#065f46', marginBottom: '8px' }}>🚗 Détails</div>
+                                    <div style={{ fontSize: '14px', color: '#065f46' }}>
+                                      <div>Bagages : {course.nb_bagages || 0}</div>
+                                      <div>Type : {course.type_course === 'privee' ? 'Privée' : 'Partagée'}</div>
+                                      <div>Règlement : {getModeReglement(course.mode_reglement)}</div>
+                                    </div>
+                                  </div>
 
-            {/* Section 4: Candidatures non retenues */}
-            <Section 
-              title="Non retenues" 
-              icon="❌" 
-              count={candidaturesNonRetenues.length}
-              color="#dc2626"
-              bgColor="#fef2f2"
-            >
-              {candidaturesNonRetenues.map(c => <CandidatureCard key={c.id} candidature={c} />)}
-            </Section>
-          </>
+                                  {/* Société */}
+                                  <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #a7f3d0'
+                                  }}>
+                                    <div style={{ fontWeight: '600', color: '#065f46', marginBottom: '8px' }}>🏢 Facturation</div>
+                                    <div style={{ fontSize: '14px', color: '#065f46' }}>
+                                      <div style={{ fontWeight: '600' }}>{course.societe?.raison_sociale || course.societe?.nom}</div>
+                                      {course.societe?.numero_tva && <div>TVA : {course.societe.numero_tva}</div>}
+                                      {course.societe?.rue && (
+                                        <div>{course.societe.rue} {course.societe.numero}, {course.societe.code_postal} {course.societe.commune}</div>
+                                      )}
+                                      <div>📞 {course.societe?.telephone}</div>
+                                      {course.societe?.email_facturation && <div>📧 {course.societe.email_facturation}</div>}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Vol + Commentaires */}
+                                {(course.numero_vol || course.commentaires) && (
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    gap: '16px', 
+                                    marginTop: '16px',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    {course.numero_vol && (
+                                      <div style={{
+                                        backgroundColor: '#d1fae5',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        color: '#065f46'
+                                      }}>
+                                        ✈️ Vol : {course.numero_vol} {course.provenance_destination_vol && `(${course.provenance_destination_vol})`}
+                                      </div>
+                                    )}
+                                    {course.commentaires && (
+                                      <div style={{
+                                        backgroundColor: '#fef3c7',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        fontSize: '14px',
+                                        color: '#92400e',
+                                        flex: 1
+                                      }}>
+                                        📝 {course.commentaires}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </main>
     </div>

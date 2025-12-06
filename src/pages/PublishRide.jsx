@@ -9,29 +9,27 @@ export default function PublishRide() {
   const { user } = useAuth()
   const navigate = useNavigate()
   
-const [formData, setFormData] = useState({
-  depart: '',
-  arrivee: '',
-  adresse_depart: '',
-  adresse_arrivee: '',
-  date: '',
-  heure: '',
-  nb_passagers: 1,
-  nb_bagages: 0,
-  prix_initial: '',
-  prix: '',
-  mode_reglement: 'especes',
-  type_course: 'privee',
-  numero_vol: '',
-  provenance_destination_vol: '',
-  commentaires: '',
-  delai_attribution_jours: 7,
-  auto_attribution_note_min: null,
-  priorite_favoris: false,
-  client_nom: '',
-  client_prenom: '',
-  client_telephone: '',
-})
+  const [formData, setFormData] = useState({
+    depart: '',
+    arrivee: '',
+    adresse_depart: '',
+    adresse_arrivee: '',
+    date: '',
+    heure: '',
+    nb_passagers: 1,
+    nb_bagages: 0,
+    prix: '',
+    prix_initial: '',
+    mode_reglement: 'especes',
+    type_course: 'privee',
+    numero_vol: '',
+    provenance_destination_vol: '',
+    commentaires: '',
+    client_nom: '',
+    client_prenom: '',
+    client_telephone: '',
+    mode_attribution: 'choix',
+  })
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -44,82 +42,77 @@ const [formData, setFormData] = useState({
     }))
   }
 
-const handleSubmit = async (e) => {
-  e.preventDefault()
-  setError('')
-  setLoading(true)
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
-  try {
-    const dateHeure = `${formData.date}T${formData.heure}:00+01:00`
-    const delaiDate = new Date(dateHeure)
-    delaiDate.setDate(delaiDate.getDate() - formData.delai_attribution_jours)
+    try {
+      const dateHeure = `${formData.date}T${formData.heure}:00+01:00`
 
-const { data: courseData, error } = await supabase
-  .from('courses')
-  .insert([
-    {
-      societe_id: user.id,
-      depart: formData.depart,
-      arrivee: formData.arrivee,
-      adresse_depart: formData.adresse_depart,
-      adresse_arrivee: formData.adresse_arrivee,
-      date_heure: dateHeure,
-      nb_passagers: parseInt(formData.nb_passagers),
-      nb_bagages: parseInt(formData.nb_bagages),
-      prix_initial: formData.prix_initial ? parseFloat(formData.prix_initial) : null,
-      prix: parseFloat(formData.prix),
-      mode_reglement: formData.mode_reglement,
-      type_course: formData.type_course,
-      numero_vol: formData.numero_vol || null,
-      provenance_destination_vol: formData.provenance_destination_vol || null,
-      commentaires: formData.commentaires,
-      statut: 'disponible',
-      delai_attribution: delaiDate.toISOString(),
-      auto_attribution_note_min: formData.auto_attribution_note_min ? parseFloat(formData.auto_attribution_note_min) : null,
-      priorite_favoris: formData.priorite_favoris,
-      client_nom: formData.client_nom,
-      client_prenom: formData.client_prenom,
-      client_telephone: formData.client_telephone,
-    }
-  ])
-      .select()
-      .single()
+      const { data: courseData, error } = await supabase
+        .from('courses')
+        .insert([
+          {
+            societe_id: user.id,
+            depart: formData.depart,
+            arrivee: formData.arrivee,
+            adresse_depart: formData.adresse_depart,
+            adresse_arrivee: formData.adresse_arrivee,
+            date_heure: dateHeure,
+            nb_passagers: parseInt(formData.nb_passagers),
+            nb_bagages: parseInt(formData.nb_bagages),
+            prix: parseFloat(formData.prix),
+            prix_initial: formData.prix_initial ? parseFloat(formData.prix_initial) : null,
+            mode_reglement: formData.mode_reglement,
+            type_course: formData.type_course,
+            numero_vol: formData.numero_vol || null,
+            provenance_destination_vol: formData.provenance_destination_vol || null,
+            commentaires: formData.commentaires,
+            statut: 'disponible',
+            client_nom: formData.client_nom,
+            client_prenom: formData.client_prenom,
+            client_telephone: formData.client_telephone,
+            mode_attribution: formData.mode_attribution,
+          }
+        ])
+        .select()
+        .single()
 
-    if (error) throw error
+      if (error) throw error
 
-    // Vérifier si la course est urgente (< 48h)
-    const courseDate = new Date(dateHeure)
-    const now = new Date()
-    const diffHours = (courseDate - now) / (1000 * 60 * 60)
-    const isUrgent = diffHours < 48
+      // Vérifier si la course est urgente (< 48h)
+      const courseDate = new Date(dateHeure)
+      const now = new Date()
+      const diffHours = (courseDate - now) / (1000 * 60 * 60)
+      const isUrgent = diffHours < 48
 
-    if (isUrgent) {
-      // Récupérer tous les utilisateurs qui veulent des notifications immédiates
-      const { data: users } = await supabase
-        .from('users')
-        .select('email')
-        .neq('id', user.id)
-        .eq('notif_email', true)
-        .eq('notif_immediate', true)
+      if (isUrgent) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('email')
+          .neq('id', user.id)
+          .eq('notif_email', true)
+          .eq('notif_immediate', true)
 
-      if (users && users.length > 0) {
-        const recipients = users.map(u => u.email)
-        await sendNewCourseNotification({
-          course: courseData,
-          recipients
-        })
-        console.log(`📧 Notification urgente envoyée à ${recipients.length} utilisateurs`)
+        if (users && users.length > 0) {
+          const recipients = users.map(u => u.email)
+          await sendNewCourseNotification({
+            course: courseData,
+            recipients
+          })
+          console.log(`📧 Notification urgente envoyée à ${recipients.length} utilisateurs`)
+        }
       }
-    }
 
-    alert('Course publiée avec succès !')
-    navigate('/dashboard')
-  } catch (error) {
-    setError(error.message)
-  } finally {
-    setLoading(false)
+      alert('Course publiée avec succès !')
+      navigate('/my-courses')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   const inputStyle = {
     width: '100%',
@@ -273,12 +266,162 @@ const { data: courseData, error } = await supabase
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label style={labelStyle}>Prix initial (€)</label>
-                <input type="number" name="prix_initial" value={formData.prix_initial} onChange={handleChange} min="0" step="0.01" placeholder="Ce que le client paie" style={inputStyle} />
+                <label style={labelStyle}>Prix payé par le client (€)</label>
+                <input 
+                  type="number" 
+                  name="prix_initial" 
+                  value={formData.prix_initial} 
+                  onChange={handleChange} 
+                  min="0" 
+                  step="1" 
+                  placeholder="Ex: 95" 
+                  style={inputStyle}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                  Optionnel - visible par le chauffeur
+                </p>
               </div>
               <div>
-                <label style={labelStyle}>Prix proposé (€) *</label>
-                <input type="number" name="prix" value={formData.prix} onChange={handleChange} min="0" step="0.01" placeholder="Ce que le chauffeur reçoit" style={{...inputStyle, fontWeight: 'bold'}} required />
+                <label style={labelStyle}>Prix pour le chauffeur (€) *</label>
+                <input 
+                  type="number" 
+                  name="prix" 
+                  value={formData.prix} 
+                  onChange={handleChange} 
+                  min="1" 
+                  step="1" 
+                  placeholder="Ex: 85" 
+                  style={{
+                    ...inputStyle, 
+                    fontWeight: 'bold',
+                    backgroundColor: '#ecfdf5',
+                    borderColor: '#059669'
+                  }} 
+                  required 
+                />
+                <p style={{ fontSize: '12px', color: '#059669', marginTop: '4px' }}>
+                  Ce que le chauffeur recevra
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mode d'attribution */}
+          <div style={sectionStyle}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
+              ⚡ Mode d'attribution
+            </h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+              Comment voulez-vous attribuer cette course ?
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label 
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: formData.mode_attribution === 'premier_arrive' ? '2px solid #059669' : '1px solid #d1d5db',
+                  backgroundColor: formData.mode_attribution === 'premier_arrive' ? '#ecfdf5' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mode_attribution"
+                  value="premier_arrive"
+                  checked={formData.mode_attribution === 'premier_arrive'}
+                  onChange={handleChange}
+                  style={{ marginTop: '2px' }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                    ⚡ Premier arrivé, premier servi
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Le premier chauffeur qui candidate obtient automatiquement la course. Idéal pour les courses urgentes.
+                  </div>
+                </div>
+              </label>
+
+              <label 
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  border: formData.mode_attribution === 'choix' ? '2px solid #1e40af' : '1px solid #d1d5db',
+                  backgroundColor: formData.mode_attribution === 'choix' ? '#dbeafe' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mode_attribution"
+                  value="choix"
+                  checked={formData.mode_attribution === 'choix'}
+                  onChange={handleChange}
+                  style={{ marginTop: '2px' }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+                    🎯 Je choisis le chauffeur
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Vous recevez les candidatures et choisissez le chauffeur (note, expérience...). Réponse attendue sous 48h.
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Infos client/passager */}
+          <div style={sectionStyle}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
+              👤 Informations du (des) passager(s)
+            </h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+              Ces informations seront visibles par le chauffeur uniquement après acceptation.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={labelStyle}>Prénom *</label>
+                <input 
+                  type="text" 
+                  name="client_prenom" 
+                  value={formData.client_prenom} 
+                  onChange={handleChange} 
+                  placeholder="Jean" 
+                  style={inputStyle} 
+                  required 
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Nom *</label>
+                <input 
+                  type="text" 
+                  name="client_nom" 
+                  value={formData.client_nom} 
+                  onChange={handleChange} 
+                  placeholder="Dupont" 
+                  style={inputStyle} 
+                  required 
+                />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Téléphone du passager *</label>
+                <input 
+                  type="tel" 
+                  name="client_telephone" 
+                  value={formData.client_telephone} 
+                  onChange={handleChange} 
+                  placeholder="0470123456" 
+                  style={inputStyle} 
+                  required 
+                />
               </div>
             </div>
           </div>
@@ -286,71 +429,23 @@ const { data: courseData, error } = await supabase
           {/* Commentaires */}
           <div style={sectionStyle}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-              📝 Commentaires
+              📝 Commentaires (optionnel)
             </h3>
             <textarea
               name="commentaires"
               value={formData.commentaires}
               onChange={handleChange}
-              placeholder="Instructions particulières..."
+              placeholder="Instructions particulières pour le chauffeur..."
               rows="3"
               style={{...inputStyle, resize: 'vertical'}}
             />
           </div>
 
-          {/* Infos client/passager */}
-<div style={sectionStyle}>
-  <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-    👤 Informations du (des) passager(s)
-  </h3>
-  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
-    Ces informations seront visibles par le chauffeur uniquement après acceptation.
-  </p>
-  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-    <div>
-      <label style={labelStyle}>Prénom *</label>
-      <input 
-        type="text" 
-        name="client_prenom" 
-        value={formData.client_prenom} 
-        onChange={handleChange} 
-        placeholder="Jean" 
-        style={inputStyle} 
-        required 
-      />
-    </div>
-    <div>
-      <label style={labelStyle}>Nom *</label>
-      <input 
-        type="text" 
-        name="client_nom" 
-        value={formData.client_nom} 
-        onChange={handleChange} 
-        placeholder="Dupont" 
-        style={inputStyle} 
-        required 
-      />
-    </div>
-    <div style={{ gridColumn: 'span 2' }}>
-      <label style={labelStyle}>Téléphone du passager *</label>
-      <input 
-        type="tel" 
-        name="client_telephone" 
-        value={formData.client_telephone} 
-        onChange={handleChange} 
-        placeholder="0470123456" 
-        style={inputStyle} 
-        required 
-      />
-    </div>
-  </div>
-</div>
-
           {/* Boutons */}
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               type="button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/available-rides')}
               style={{
                 flex: 1,
                 backgroundColor: '#f3f4f6',
@@ -370,7 +465,7 @@ const { data: courseData, error } = await supabase
               disabled={loading}
               style={{
                 flex: 1,
-                backgroundColor: '#111827',
+                backgroundColor: '#059669',
                 color: 'white',
                 padding: '14px',
                 borderRadius: '8px',

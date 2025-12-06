@@ -35,7 +35,7 @@ export default function Login() {
       if (isLogin) {
         const { error } = await signIn(formData.email, formData.password)
         if (error) throw error
-        navigate('/dashboard')
+        navigate('/available-rides')
       } else {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
@@ -53,13 +53,12 @@ export default function Login() {
                 nom: formData.nom,
                 telephone: formData.telephone,
                 type: formData.type,
-                valide: false // Nouveau champ - profil non validé par défaut
+                valide: false
               }
             ])
           if (profileError) throw profileError
         }
 
-        // Afficher le popup des documents
         setShowDocumentsPopup(true)
       }
     } catch (error) {
@@ -110,7 +109,7 @@ export default function Login() {
         justifyContent: 'center'
       }}>
         
-        {/* Colonne gauche - Mission & Infos */}
+        {/* Colonne gauche - Pitch */}
         <div style={{
           flex: '1',
           minWidth: '300px',
@@ -121,51 +120,93 @@ export default function Login() {
             <Logo size="large" />
           </div>
 
-          {/* Mission */}
+          {/* Accroche principale */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             border: '1px solid #e5e7eb',
-            padding: '24px',
+            padding: '28px',
             marginBottom: '16px'
           }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>
-              🚐 Notre mission
-            </h2>
-            <p style={{ fontSize: '14px', color: '#4b5563', lineHeight: '1.6', marginBottom: '16px' }}>
-              <strong>Shuttle Marketplace</strong> connecte les sociétés de navettes aéroport avec des chauffeurs indépendants pour optimiser chaque trajet.
+            <h1 style={{ 
+              fontSize: '28px', 
+              fontWeight: '800', 
+              color: '#111827', 
+              marginBottom: '12px',
+              lineHeight: '1.2'
+            }}>
+              Fini les courses perdues.<br />
+              Fini les retours à vide.
+            </h1>
+            
+            <p style={{ 
+              fontSize: '16px', 
+              color: '#4b5563', 
+              lineHeight: '1.6', 
+              marginBottom: '24px' 
+            }}>
+              La première plateforme belge d'entraide entre professionnels de la navette aéroport.
             </p>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>🚗</span>
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>Pour les chauffeurs</div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Maximisez votre rentabilité en étant chargé à l'aller comme au retour. Fini les retours à vide !
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ 
+                backgroundColor: '#ecfdf5',
+                borderRadius: '10px',
+                padding: '16px',
+                borderLeft: '4px solid #059669'
+              }}>
+                <div style={{ fontWeight: '700', color: '#065f46', fontSize: '15px', marginBottom: '6px' }}>
+                  🚐 Trop de demandes ?
+                </div>
+                <div style={{ fontSize: '14px', color: '#047857', lineHeight: '1.5' }}>
+                  Publiez vos courses excédentaires. Un confrère de confiance les effectue, votre client est servi, vous gardez la relation.
                 </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>🏢</span>
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>Pour les sociétés</div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Rentabilisez vos courses en les confiant à des chauffeurs qualifiés quand vous êtes surchargés.
-                  </div>
+              <div style={{ 
+                backgroundColor: '#dbeafe',
+                borderRadius: '10px',
+                padding: '16px',
+                borderLeft: '4px solid #2563eb'
+              }}>
+                <div style={{ fontWeight: '700', color: '#1e40af', fontSize: '15px', marginBottom: '6px' }}>
+                  📅 Un creux dans le planning ?
+                </div>
+                <div style={{ fontSize: '14px', color: '#1d4ed8', lineHeight: '1.5' }}>
+                  Consultez les courses disponibles en temps réel. Candidatez en un clic. Roulez plus, gagnez plus.
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>💰</span>
-                <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>Système d'enchères</div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                    Les chauffeurs proposent leur prix, vous choisissez la meilleure offre.
-                  </div>
-                </div>
+            </div>
+
+            {/* Points clés */}
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginTop: '24px',
+              paddingTop: '20px',
+              borderTop: '1px solid #e5e7eb'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#059669'
+              }}>
+                <span>✓</span> Entre pros agréés
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#059669'
+              }}>
+                <span>✓</span> Vous fixez votre prix
               </div>
             </div>
           </div>
@@ -177,12 +218,9 @@ export default function Login() {
             border: '1px solid #fcd34d',
             padding: '20px'
           }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', marginBottom: '12px' }}>
-              📋 Documents requis pour les chauffeurs
+            <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '12px' }}>
+              📋 Documents requis pour valider votre profil
             </h3>
-            <p style={{ fontSize: '13px', color: '#92400e', marginBottom: '12px' }}>
-              Pour exercer légalement le transport de personnes en Belgique, vous devez fournir :
-            </p>
             <ul style={{ 
               fontSize: '13px', 
               color: '#78350f', 
@@ -190,17 +228,14 @@ export default function Login() {
               margin: 0,
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px'
+              gap: '4px'
             }}>
-              <li><strong>Autorisation LVC</strong> (Location de Véhicules avec Chauffeur)</li>
-              <li><strong>Attestation véhicule</strong></li>
-              <li><strong>Attestation d'assurance</strong> transport de personnes</li>
-              <li><strong>Certificat d'immatriculation</strong></li>
-              <li><strong>Carte verte</strong> (assurance internationale)</li>
+              <li>Autorisation</li>
+              <li>Attestation véhicule</li>
+              <li>Attestation d'assurance transport de personnes</li>
+              <li>Certificat d'immatriculation</li>
+              <li>Carte verte</li>
             </ul>
-            <p style={{ fontSize: '12px', color: '#92400e', marginTop: '12px', fontStyle: 'italic' }}>
-              Ces documents seront vérifiés avant l'activation de votre compte.
-            </p>
           </div>
         </div>
 
@@ -217,11 +252,11 @@ export default function Login() {
             border: '1px solid #e5e7eb',
             padding: '32px'
           }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '8px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '8px', textAlign: 'center' }}>
               {isLogin ? 'Connexion' : 'Inscription'}
-            </h1>
+            </h2>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', textAlign: 'center' }}>
-              {isLogin ? 'Connectez-vous à votre compte' : 'Créez votre compte gratuitement'}
+              {isLogin ? 'Accédez à votre compte' : 'Rejoignez le réseau gratuitement'}
             </p>
 
             {error && (
@@ -242,7 +277,7 @@ export default function Login() {
                 {!isLogin && (
                   <>
                     <div>
-                      <label style={labelStyle}>Nom complet / Raison sociale *</label>
+                      <label style={labelStyle}>Nom / Raison sociale *</label>
                       <input
                         type="text"
                         name="nom"
@@ -264,15 +299,6 @@ export default function Login() {
                         style={inputStyle}
                         required={!isLogin}
                       />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Type de compte</label>
-                      <select name="type" value={formData.type} onChange={handleChange} style={inputStyle}>
-                        <option value="membre">Chauffeur / Société</option>
-                      </select>
-                      <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                        Vous pourrez publier ET prendre des courses
-                      </p>
                     </div>
                   </>
                 )}
@@ -315,13 +341,13 @@ export default function Login() {
                       required
                     />
                     <label style={{ fontSize: '13px', color: '#374151' }}>
-                      J'ai lu et j'accepte les{' '}
+                      J'accepte les{' '}
                       <a 
                         href="/cgu" 
                         target="_blank" 
                         style={{ color: '#1e40af', textDecoration: 'underline' }}
                       >
-                        Conditions Générales d'Utilisation
+                        CGU
                       </a>
                       {' '}et la{' '}
                       <a 
@@ -341,19 +367,19 @@ export default function Login() {
                   disabled={loading || (!isLogin && !formData.acceptCGU)}
                   style={{
                     width: '100%',
-                    backgroundColor: '#111827',
+                    backgroundColor: '#059669',
                     color: 'white',
-                    padding: '14px',
+                    padding: '16px',
                     borderRadius: '8px',
-                    fontSize: '15px',
-                    fontWeight: '500',
+                    fontSize: '16px',
+                    fontWeight: '600',
                     border: 'none',
                     cursor: 'pointer',
-                    opacity: loading ? 0.7 : 1,
+                    opacity: loading || (!isLogin && !formData.acceptCGU) ? 0.6 : 1,
                     marginTop: '8px'
                   }}
                 >
-                  {loading ? 'Chargement...' : isLogin ? 'Se connecter' : "S'inscrire"}
+                  {loading ? 'Chargement...' : isLogin ? 'Se connecter' : "Créer mon compte"}
                 </button>
               </div>
             </form>
@@ -367,11 +393,28 @@ export default function Login() {
                   color: '#6b7280',
                   fontSize: '14px',
                   border: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
                 }}
               >
-                {isLogin ? "Pas encore de compte ? S'inscrire" : 'Déjà un compte ? Se connecter'}
+                {isLogin ? "Pas encore inscrit ? Rejoindre" : 'Déjà un compte ? Se connecter'}
               </button>
+            </div>
+          </div>
+
+          {/* Témoignage / Confiance */}
+          <div style={{
+            marginTop: '16px',
+            textAlign: 'center',
+            padding: '16px',
+            color: '#6b7280',
+            fontSize: '13px'
+          }}>
+            <div style={{ marginBottom: '8px' }}>
+              🚐 Déjà utilisé par des navettistes en Belgique
+            </div>
+            <div style={{ color: '#9ca3af', fontSize: '12px' }}>
+              Une initiative de professionnels, pour les professionnels
             </div>
           </div>
         </div>
@@ -401,9 +444,9 @@ export default function Login() {
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
           }}>
             <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
               <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-                Compte créé avec succès !
+                Bienvenue dans le réseau !
               </h2>
               <p style={{ fontSize: '14px', color: '#6b7280' }}>
                 Une dernière étape pour activer votre compte...
@@ -420,7 +463,7 @@ export default function Login() {
                 📧 Envoyez vos documents par email
               </h3>
               <p style={{ fontSize: '14px', color: '#78350f', marginBottom: '16px' }}>
-                Pour valider votre profil, envoyez les documents suivants à :
+                Pour valider votre profil et commencer à utiliser la plateforme :
               </p>
               
               <div style={{
@@ -452,7 +495,7 @@ export default function Login() {
                 flexDirection: 'column',
                 gap: '4px'
               }}>
-                <li>Autorisation LVC</li>
+                <li>Autorisation</li>
                 <li>Attestation véhicule</li>
                 <li>Attestation d'assurance transport de personnes</li>
                 <li>Certificat d'immatriculation</li>
@@ -466,21 +509,22 @@ export default function Login() {
               padding: '12px',
               marginBottom: '24px',
               fontSize: '13px',
-              color: '#065f46'
+              color: '#065f46',
+              textAlign: 'center'
             }}>
-              ⏱️ Votre profil sera validé sous <strong>24-48h</strong> après réception des documents.
+              ⏱️ Validation sous <strong>24-48h</strong> après réception
             </div>
 
             <button
               onClick={handleClosePopup}
               style={{
                 width: '100%',
-                backgroundColor: '#111827',
+                backgroundColor: '#059669',
                 color: 'white',
                 padding: '14px',
                 borderRadius: '8px',
                 fontSize: '15px',
-                fontWeight: '500',
+                fontWeight: '600',
                 border: 'none',
                 cursor: 'pointer'
               }}

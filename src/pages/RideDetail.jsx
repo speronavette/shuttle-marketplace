@@ -15,7 +15,6 @@ export default function RideDetail() {
   const [candidatureLoading, setCandidatureLoading] = useState(false)
   const [hasCandidature, setHasCandidature] = useState(false)
   const [message, setMessage] = useState('')
-  const [prixPropose, setPrixPropose] = useState('')
   const [userProfile, setUserProfile] = useState(null)
 
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function RideDetail() {
         .select('id')
         .eq('course_id', id)
         .eq('chauffeur_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (data) setHasCandidature(true)
     } catch (error) {
@@ -93,53 +92,119 @@ export default function RideDetail() {
     setCandidatureLoading(true)
     setMessage('')
 
-    // Validation : prix ne peut pas dépasser le prix demandé
-    if (prixPropose && parseFloat(prixPropose) > course.prix) {
-      setMessage('⚠️ Le prix proposé ne peut pas être supérieur au prix demandé')
-      setCandidatureLoading(false)
-      return
-    }
-
     try {
-      const { error } = await supabase
-        .from('candidatures')
-        .insert([
-          {
-            course_id: id,
-            chauffeur_id: user.id,
-            prix_propose: parseFloat(prixPropose) || course.prix
-          }
-        ])
+      // Si mode "premier arrivé", on attribue directement la course
+      if (course.mode_attribution === 'premier_arrive') {
+        // Vérifier qu'il n'y a pas déjà un chauffeur attribué
+        const { data: checkCourse } = await supabase
+          .from('courses')
+          .select('chauffeur_attribue_id, statut')
+          .eq('id', id)
+          .single()
 
-      if (error) throw error
+        if (checkCourse?.chauffeur_attribue_id || checkCourse?.statut !== 'disponible') {
+          setMessage('⚠️ Cette course a déjà été attribuée à un autre chauffeur')
+          setCandidatureLoading(false)
+          return
+        }
 
-      // Récupérer les infos du candidat
-      const { data: candidat } = await supabase
-        .from('users')
-        .select('nom, note_moyenne_chauffeur, nb_courses_chauffeur')
-        .eq('id', user.id)
-        .single()
+        // Créer la candidature ET attribuer la course en même temps
+        const { error: candError } = await supabase
+          .from('candidatures')
+          .insert([
+            {
+              course_id: id,
+              chauffeur_id: user.id,
+              prix_propose: course.prix
+            }
+          ])
 
-      // Récupérer l'email de la société
-      const { data: societe } = await supabase
-        .from('users')
-        .select('email, notif_email, notif_immediate')
-        .eq('id', course.societe_id)
-        .single()
+        if (candError) throw candError
 
-      // Envoyer notification à la société si elle veut des notifications immédiates
-      if (societe?.notif_email && societe?.notif_immediate) {
-        await sendCandidatureNotification({
-          course,
-          candidat,
-          prixPropose: parseFloat(prixPropose) || course.prix,
-          sociétéEmail: societe.email
-        })
-        console.log('📧 Notification de candidature envoyée')
+        // Attribuer la course
+        const { error: updateError } = await supabase
+          .from('courses')
+          .update({
+            chauffeur_attribue_id: user.id,
+            statut: 'attribuee'
+          })
+          .eq('id', id)
+
+        if (updateError) throw updateError
+
+        // Envoyer notification au donneur d'ordre
+        const { data: societe } = await supabase
+          .from('users')
+          .select('email, notif_email')
+          .eq('id', course.societe_id)
+          .single()
+
+        const { data: candidat } = await supabase
+          .from('users')
+          .select('nom, telephone')
+          .eq('id', user.id)
+          .single()
+
+        if (societe?.notif_email) {
+          await sendCandidatureNotification({
+            course,
+            candidat,
+            prixPropose: course.prix,
+            sociétéEmail: societe.email,
+            autoAttribue: true
+          })
+        }
+
+        setHasCandidature(true)
+        setMessage('🎉 Course attribuée ! Vous avez obtenu cette course.')
+        
+        // Rafraîchir pour afficher les détails
+        setTimeout(() => {
+          fetchCourse()
+        }, 1000)
+
+      } else {
+        // Mode "choix" - candidature normale
+        const { error } = await supabase
+          .from('candidatures')
+          .insert([
+            {
+              course_id: id,
+              chauffeur_id: user.id,
+              prix_propose: course.prix
+            }
+          ])
+
+        if (error) throw error
+
+        // Récupérer les infos du candidat
+        const { data: candidat } = await supabase
+          .from('users')
+          .select('nom, note_moyenne_chauffeur, nb_courses_chauffeur')
+          .eq('id', user.id)
+          .single()
+
+        // Récupérer l'email de la société
+        const { data: societe } = await supabase
+          .from('users')
+          .select('email, notif_email, notif_immediate')
+          .eq('id', course.societe_id)
+          .single()
+
+        // Envoyer notification à la société si elle veut des notifications immédiates
+        if (societe?.notif_email && societe?.notif_immediate) {
+          await sendCandidatureNotification({
+            course,
+            candidat,
+            prixPropose: course.prix,
+            sociétéEmail: societe.email
+          })
+          console.log('📧 Notification de candidature envoyée')
+        }
+
+        setHasCandidature(true)
+        setMessage('✅ Candidature envoyée ! Le donneur d\'ordre vous répondra sous 48h.')
       }
-
-      setHasCandidature(true)
-      setMessage('✅ Candidature envoyée avec succès !')
     } catch (error) {
       if (error.code === '23505') {
         setMessage('⚠️ Vous avez déjà candidaté pour cette course')
@@ -213,22 +278,6 @@ export default function RideDetail() {
         margin: '0 auto',
         padding: '32px 16px'
       }}>
-        {/* Bouton retour */}
-        <button
-          onClick={() => navigate(hasCandidature || isAttributedToMe ? '/my-candidatures' : '/available-rides')}
-          style={{
-            backgroundColor: 'transparent',
-            color: '#6b7280',
-            fontSize: '14px',
-            border: 'none',
-            cursor: 'pointer',
-            marginBottom: '16px',
-            padding: 0
-          }}
-        >
-          ← {hasCandidature || isAttributedToMe ? 'Retour à mes candidatures' : 'Retour aux courses'}
-        </button>
-
         {/* Alerte profil non validé */}
         {user && !isOwner && !isValidated && (
           <div style={{
@@ -303,13 +352,25 @@ export default function RideDetail() {
             </div>
             <div style={{ backgroundColor: '#ecfdf5', padding: '16px', borderRadius: '8px' }}>
               <div style={{ fontSize: '13px', color: '#059669', marginBottom: '4px' }}>💰 Prix</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#059669' }}>{course.prix}€</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#059669' }}>{course.prix}€</div>
             </div>
           </div>
 
           {/* Infos supplémentaires de base */}
-          {(course.type_course || course.mode_reglement) && (
+          {(course.type_course || course.mode_reglement || course.mode_attribution) && (
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              {course.mode_attribution === 'premier_arrive' && (
+                <div style={{
+                  backgroundColor: '#fef3c7',
+                  color: '#92400e',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  ⚡ Premier arrivé
+                </div>
+              )}
               {course.type_course && (
                 <div style={{
                   backgroundColor: course.type_course === 'privee' ? '#fef3c7' : '#dbeafe',
@@ -405,9 +466,6 @@ export default function RideDetail() {
                   <div><strong>Bagages :</strong> {course.nb_bagages || 0}</div>
                   <div><strong>Type :</strong> {course.type_course === 'privee' ? 'Privée' : 'Partagée'}</div>
                   <div><strong>Règlement :</strong> {getModeReglement(course.mode_reglement)}</div>
-                  {course.prix_initial && (
-                    <div><strong>Prix client :</strong> {course.prix_initial}€</div>
-                  )}
                 </div>
               </div>
 
@@ -583,7 +641,7 @@ export default function RideDetail() {
               ✅ Vous avez déjà candidaté pour cette course
             </div>
           ) : course.statut === 'disponible' ? (
-            // Formulaire de candidature - désactivé si non validé
+            // Bouton de candidature - désactivé si non validé
             !isValidated ? (
               <div style={{
                 backgroundColor: '#fef2f2',
@@ -599,7 +657,7 @@ export default function RideDetail() {
                   Votre profil doit être validé avant de pouvoir candidater aux courses.
                 </p>
                 <a
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ADocuments%20requis%20:%0A-%20Autorisation%20LVC%0A-%20Attestation%20véhicule%0A-%20Attestation%20d'assurance%20transport%20de%20personnes%0A-%20Certificat%20d'immatriculation%0A-%20Carte%20verte%0A%0ACordialement"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
                   style={{
                     display: 'inline-block',
                     backgroundColor: '#dc2626',
@@ -615,70 +673,43 @@ export default function RideDetail() {
                 </a>
               </div>
             ) : (
-              <div style={{
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                padding: '20px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '16px' }}>
-                  💰 Faire une offre
-                </h3>
-                
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
-                    Prix proposé (€)
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="number"
-                      value={prixPropose}
-                      onChange={(e) => setPrixPropose(e.target.value)}
-                      placeholder={course.prix.toString()}
-                      min="1"
-                      max={course.prix}
-                      step="1"
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '18px',
-                        fontWeight: 'bold'
-                      }}
-                    />
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                      Prix demandé : {course.prix}€
+              <div>
+                {course.mode_attribution === 'premier_arrive' && (
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #fcd34d',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    textAlign: 'center'
+                  }}>
+                    <span style={{ fontSize: '14px', color: '#92400e', fontWeight: '500' }}>
+                      ⚡ Mode "Premier arrivé" — Si vous candidatez, la course vous est attribuée immédiatement !
                     </span>
                   </div>
-                  {prixPropose && parseFloat(prixPropose) > course.prix ? (
-                    <p style={{ fontSize: '13px', color: '#dc2626', marginTop: '8px', fontWeight: '500' }}>
-                      ⚠️ Le prix ne peut pas dépasser {course.prix}€
-                    </p>
-                  ) : (
-                    <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
-                      💡 Vous pouvez proposer un prix égal ou inférieur au prix demandé
-                    </p>
-                  )}
-                </div>
-
+                )}
                 <button
                   onClick={handleCandidature}
-                  disabled={candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)}
+                  disabled={candidatureLoading}
                   style={{
                     width: '100%',
-                    backgroundColor: (prixPropose && parseFloat(prixPropose) > course.prix) ? '#9ca3af' : '#059669',
+                    backgroundColor: '#059669',
                     color: 'white',
-                    padding: '16px',
+                    padding: '18px',
                     borderRadius: '8px',
-                    fontSize: '16px',
+                    fontSize: '18px',
                     fontWeight: '600',
                     border: 'none',
-                    cursor: (candidatureLoading || (prixPropose && parseFloat(prixPropose) > course.prix)) ? 'not-allowed' : 'pointer',
+                    cursor: candidatureLoading ? 'not-allowed' : 'pointer',
                     opacity: candidatureLoading ? 0.7 : 1
                   }}
                 >
-                  {candidatureLoading ? 'Envoi en cours...' : `🚗 Proposer ${prixPropose || course.prix}€`}
+                  {candidatureLoading 
+                    ? 'Envoi en cours...' 
+                    : course.mode_attribution === 'premier_arrive'
+                      ? `⚡ Prendre cette course pour ${course.prix}€`
+                      : `🚗 Candidater pour ${course.prix}€`
+                  }
                 </button>
               </div>
             )

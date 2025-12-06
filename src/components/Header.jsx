@@ -12,7 +12,16 @@ export default function Header() {
     navigate('/login')
   }
 
-  const isHomePage = location.pathname === '/dashboard'
+  // Menu items
+  const menuItems = [
+    { path: '/available-rides', label: '🚗 Courses', short: 'Courses' },
+    { path: '/publish-ride', label: '+ Publier', short: 'Publier' },
+    { path: '/my-courses', label: '📋 Mes publications', short: 'Publications' },
+    { path: '/my-candidatures', label: '📨 Mes candidatures', short: 'Candidatures' },
+    { path: '/dashboard', label: '👤 Profil', short: 'Profil' },
+  ]
+
+  const isActive = (path) => location.pathname === path
 
   return (
     <header style={{ 
@@ -23,98 +32,113 @@ export default function Header() {
       zIndex: 50,
       width: '100%'
     }}>
+      {/* Ligne du haut : Logo + Déconnexion */}
       <div style={{
-        maxWidth: '600px',
+        maxWidth: '1200px',
         margin: '0 auto',
-        padding: '12px 16px'
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: user ? '1px solid #f3f4f6' : 'none'
       }}>
-        {/* Bouton retour si pas sur Dashboard */}
-        {!isHomePage && (
+        {/* Logo */}
+        <div 
+          style={{ cursor: 'pointer' }}
+          onClick={() => navigate(user ? '/available-rides' : '/login')}
+        >
+          <Logo />
+        </div>
+
+        {/* Déconnexion */}
+        {user ? (
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleLogout}
             style={{
               backgroundColor: 'transparent',
               color: '#6b7280',
               fontSize: '14px',
+              fontWeight: '500',
               border: 'none',
               cursor: 'pointer',
-              padding: '0',
-              marginBottom: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              padding: '8px 12px',
+              borderRadius: '6px'
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            Déconnexion
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/login')}
+            style={{
+              backgroundColor: '#111827',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
-            ← Retour
+            Connexion
           </button>
         )}
+      </div>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
+      {/* Menu navigation - seulement si connecté */}
+      {user && (
+        <nav style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '0 16px'
         }}>
-          {/* Logo */}
-          <div 
-            style={{ cursor: 'pointer' }}
-            onClick={() => navigate('/dashboard')}
-          >
-            <Logo />
-          </div>
-
-          {/* Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {user ? (
-              <>
-                <button
-                  onClick={() => navigate('/publish-ride')}
-                  style={{
-                    backgroundColor: '#111827',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  + Publier
-                </button>
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: '#6b7280',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Déconnexion
-                </button>
-              </>
-            ) : (
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            overflowX: 'auto',
+            paddingBottom: '2px',
+            msOverflowStyle: 'none',
+            scrollbarWidth: 'none'
+          }}>
+            {menuItems.map((item) => (
               <button
-                onClick={() => navigate('/login')}
+                key={item.path}
+                onClick={() => navigate(item.path)}
                 style={{
-                  backgroundColor: '#111827',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
+                  padding: '12px 16px',
                   fontSize: '14px',
                   fontWeight: '500',
                   border: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  borderRadius: '8px 8px 0 0',
+                  transition: 'all 0.15s',
+                  backgroundColor: isActive(item.path) ? '#111827' : 'transparent',
+                  color: isActive(item.path) ? 'white' : '#6b7280',
+                  borderBottom: isActive(item.path) ? '2px solid #111827' : '2px solid transparent'
+                }}
+                onMouseOver={(e) => {
+                  if (!isActive(item.path)) {
+                    e.target.style.backgroundColor = '#f3f4f6'
+                    e.target.style.color = '#111827'
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isActive(item.path)) {
+                    e.target.style.backgroundColor = 'transparent'
+                    e.target.style.color = '#6b7280'
+                  }
                 }}
               >
-                Connexion
+                <span className="menu-full">{item.label}</span>
               </button>
-            )}
+            ))}
           </div>
-        </div>
-      </div>
+        </nav>
+      )}
     </header>
   )
 }

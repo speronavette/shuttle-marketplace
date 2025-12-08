@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
-import { sendAcceptationNotification } from '../services/emailService'
+import { sendAcceptationNotification, sendNonRetenuNotification } from '../services/emailService'
 
 export default function MyCourses() {
   const navigate = useNavigate()
@@ -29,7 +29,7 @@ export default function MyCourses() {
           candidatures (
             id,
             prix_propose,
-            chauffeur:users!chauffeur_id (id, nom, telephone, note_moyenne_chauffeur, nb_courses_chauffeur)
+            chauffeur:users!chauffeur_id (id, nom, telephone, email, notif_email, note_moyenne_chauffeur, nb_courses_chauffeur)
           ),
           chauffeur_attribue:users!chauffeur_attribue_id (id, nom, telephone, raison_sociale, numero_tva, rue, numero, code_postal, commune, email_facturation)
         `)
@@ -45,7 +45,7 @@ export default function MyCourses() {
     }
   }
 
-  const handleAcceptCandidature = async (courseId, chauffeurId, prixAccepte) => {
+  const handleAcceptCandidature = async (courseId, chauffeurId, prixAccepte, allCandidatures) => {
     setActionLoading(`accept-${courseId}-${chauffeurId}`)
     
     try {
@@ -78,12 +78,27 @@ export default function MyCourses() {
         .eq('id', user.id)
         .single()
 
+      // Envoyer email au chauffeur accepté
       if (chauffeur?.notif_email) {
         await sendAcceptationNotification({
           course: courseData,
           chauffeurEmail: chauffeur.email,
           societe
         })
+        console.log('📧 Email acceptation envoyé')
+      }
+
+      // Envoyer email aux chauffeurs NON retenus
+      const nonRetenus = allCandidatures.filter(c => c.chauffeur?.id !== chauffeurId)
+      for (const candidature of nonRetenus) {
+        if (candidature.chauffeur?.notif_email && candidature.chauffeur?.email) {
+          await sendNonRetenuNotification({
+            course: courseData,
+            chauffeurEmail: candidature.chauffeur.email,
+            chauffeurNom: candidature.chauffeur.nom
+          })
+          console.log(`📧 Email non-retenu envoyé à ${candidature.chauffeur.nom}`)
+        }
       }
 
       await fetchMyCourses()
@@ -263,7 +278,7 @@ export default function MyCourses() {
                     const isExpanded = expandedCourse === course.id
                     const hasCandidatures = course.candidatures?.length > 0
                     
-return (
+                    return (
                       <React.Fragment key={course.id}>
                         <tr
                           style={{ 
@@ -434,7 +449,7 @@ return (
                                         </div>
                                       </div>
                                       <button
-                                        onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, course.prix)}
+                                        onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, course.prix, course.candidatures)}
                                         disabled={actionLoading === `accept-${course.id}-${candidature.chauffeur?.id}`}
                                         style={{
                                           backgroundColor: '#059669',

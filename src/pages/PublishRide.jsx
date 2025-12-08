@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Header from '../components/Header'
+import Tooltip from '../components/Tooltip'
 import { sendNewCourseNotification } from '../services/emailService'
 
 export default function PublishRide() {
@@ -242,14 +243,22 @@ export default function PublishRide() {
                 <input type="number" name="nb_bagages" value={formData.nb_bagages} onChange={handleChange} min="0" max="10" style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Type de course *</label>
+                <label style={labelStyle}>
+                  <Tooltip text="Course privée : un seul client. Course partagée : plusieurs clients peuvent partager le véhicule.">
+                    Type de course *
+                  </Tooltip>
+                </label>
                 <select name="type_course" value={formData.type_course} onChange={handleChange} style={inputStyle} required>
                   <option value="privee">🚗 Course privée</option>
                   <option value="partagee">👥 Course partagée</option>
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Mode de règlement *</label>
+                <label style={labelStyle}>
+                  <Tooltip text="Espèces : le passager paie le chauffeur en cash. Facture : le chauffeur facture votre société. Carte : paiement par terminal.">
+                    Mode de règlement *
+                  </Tooltip>
+                </label>
                 <select name="mode_reglement" value={formData.mode_reglement} onChange={handleChange} style={inputStyle} required>
                   <option value="especes">💵 Espèces</option>
                   <option value="facture">📄 Facture</option>
@@ -266,7 +275,11 @@ export default function PublishRide() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label style={labelStyle}>Prix payé par le client (€)</label>
+                <label style={labelStyle}>
+                  <Tooltip text="Le montant que votre client vous paie. Visible par le chauffeur pour qu'il comprenne la marge. Optionnel.">
+                    Prix payé par le client (€)
+                  </Tooltip>
+                </label>
                 <input 
                   type="number" 
                   name="prix_initial" 
@@ -282,7 +295,11 @@ export default function PublishRide() {
                 </p>
               </div>
               <div>
-                <label style={labelStyle}>Prix pour le chauffeur (€) *</label>
+                <label style={labelStyle}>
+                  <Tooltip text="Le montant net que le chauffeur recevra pour cette course. C'est ce prix qui sera affiché aux chauffeurs.">
+                    Prix pour le chauffeur (€) *
+                  </Tooltip>
+                </label>
                 <input 
                   type="number" 
                   name="prix" 
@@ -309,7 +326,9 @@ export default function PublishRide() {
           {/* Mode d'attribution */}
           <div style={sectionStyle}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-              ⚡ Mode d'attribution
+              <Tooltip text="Choisissez comment attribuer la course : automatiquement au premier chauffeur ou manuellement parmi les candidats.">
+                ⚡ Mode d'attribution
+              </Tooltip>
             </h3>
             <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
               Comment voulez-vous attribuer cette course ?

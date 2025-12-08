@@ -12,6 +12,8 @@ import EditProfile from './pages/EditProfile'
 import AdminDashboard from './pages/AdminDashboard'
 import CGU from './pages/CGU'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import ResetPassword from './pages/ResetPassword'
+
 
 
 
@@ -33,6 +35,7 @@ function App() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/cgu" element={<CGU />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </AuthProvider>
     </Router>

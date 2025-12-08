@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
+import Tooltip from '../components/Tooltip'
 
 export default function AvailableRides() {
   const navigate = useNavigate()
@@ -10,6 +11,7 @@ export default function AvailableRides() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
+  const [sortBy, setSortBy] = useState('recent') // 'recent', 'date', 'prix'
 
   useEffect(() => {
     fetchCourses()
@@ -28,7 +30,7 @@ export default function AvailableRides() {
           candidatures (id, chauffeur_id)
         `)
         .eq('statut', 'disponible')
-        .order('date_heure', { ascending: true })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setCourses(data || [])
@@ -78,6 +80,20 @@ export default function AvailableRides() {
     return course.candidatures?.some(c => c.chauffeur_id === user?.id)
   }
 
+  // Trier les courses
+  const sortedCourses = [...courses].sort((a, b) => {
+    switch (sortBy) {
+      case 'recent':
+        return new Date(b.created_at) - new Date(a.created_at)
+      case 'date':
+        return new Date(a.date_heure) - new Date(b.date_heure)
+      case 'prix':
+        return b.prix - a.prix
+      default:
+        return 0
+    }
+  })
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -103,44 +119,59 @@ export default function AvailableRides() {
           <div style={{
             backgroundColor: '#fef3c7',
             border: '1px solid #fcd34d',
-            borderRadius: '8px',
-            padding: '12px 16px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '20px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>⚠️</span>
-              <span style={{ fontSize: '14px', color: '#92400e' }}>
-                <strong>Profil en attente de validation</strong> - Vous pouvez consulter les courses, mais pas candidater.
-              </span>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+                  Profil en attente de validation
+                </div>
+                <p style={{ fontSize: '14px', color: '#78350f', margin: '0 0 12px 0' }}>
+                  Vous pouvez consulter les courses, mais pas candidater. Envoyez vos documents pour activer votre compte :
+                </p>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '6px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>📄 Autorisation d'exploiter</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>🚗 Attestation véhicule</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>🛡️ Assurance transport de personnes</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>📋 Certificat d'immatriculation</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>💳 Carte verte</div>
+                </div>
+                <a 
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
+                  style={{ 
+                    display: 'inline-block',
+                    backgroundColor: '#92400e',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    textDecoration: 'none'
+                  }}
+                >
+                  📧 Envoyer mes documents
+                </a>
+              </div>
             </div>
-            <a 
-              href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
-              style={{ 
-                backgroundColor: '#92400e',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '500',
-                textDecoration: 'none'
-              }}
-            >
-              Envoyer mes documents →
-            </a>
           </div>
         )}
 
-        {/* En-tête */}
+        {/* En-tête avec tri */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
@@ -149,6 +180,27 @@ export default function AvailableRides() {
             <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
               {courses.length} course{courses.length > 1 ? 's' : ''} disponible{courses.length > 1 ? 's' : ''}
             </p>
+          </div>
+          
+          {/* Sélecteur de tri */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#6b7280' }}>Trier par :</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px',
+                backgroundColor: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="recent">🕐 Dernières publiées</option>
+              <option value="date">📅 Prochaines courses</option>
+              <option value="prix">💰 Prix décroissant</option>
+            </select>
           </div>
         </div>
 
@@ -197,7 +249,7 @@ export default function AvailableRides() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.map((course, index) => {
+                  {sortedCourses.map((course, index) => {
                     const isOwner = user?.id === course.societe_id
                     const alreadyCandidated = hasCandidated(course)
                     
@@ -226,17 +278,20 @@ export default function AvailableRides() {
                             → {course.arrivee}
                           </div>
                           {course.mode_attribution === 'premier_arrive' && (
-                            <div style={{
-                              display: 'inline-block',
-                              marginTop: '4px',
-                              backgroundColor: '#fef3c7',
-                              color: '#92400e',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: '600'
-                            }}>
-                              ⚡ Premier arrivé
+                            <div style={{ marginTop: '4px' }}>
+                              <Tooltip text="Le premier chauffeur qui candidate obtient automatiquement la course. Pas besoin d'attendre la validation du donneur d'ordre.">
+                                <span style={{
+                                  display: 'inline-block',
+                                  backgroundColor: '#fef3c7',
+                                  color: '#92400e',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: '600'
+                                }}>
+                                  ⚡ Premier arrivé
+                                </span>
+                              </Tooltip>
                             </div>
                           )}
                         </td>

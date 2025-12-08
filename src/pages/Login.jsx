@@ -8,10 +8,14 @@ export default function Login() {
   const navigate = useNavigate()
   const { signIn } = useAuth()
   
-  const [isLogin, setIsLogin] = useState(true)
+  const [mode, setMode] = useState('login') // 'login', 'register', 'forgot'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [showDocumentsPopup, setShowDocumentsPopup] = useState(false)
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
   
   const [formData, setFormData] = useState({
     email: '',
@@ -26,17 +30,94 @@ export default function Login() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = async (e) => {
+  const handleResendConfirmation = async () => {
+    setResendLoading(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email
+      })
+      if (error) throw error
+      setResendSuccess(true)
+    } catch (error) {
+      setError("Erreur lors de l'envoi. Réessayez dans quelques minutes.")
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
+  const checkEmailStatus = async (email) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-email-status`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ email })
+        }
+      )
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Erreur check email:', error)
+      return null
+    }
+  }
+
+  const handleForgotPassword = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
     setLoading(true)
 
     try {
-      if (isLogin) {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      })
+      
+      if (error) throw error
+      
+      setSuccess('📧 Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception et vos spams.')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+    setEmailNotConfirmed(false)
+    setResendSuccess(false)
+    setLoading(true)
+
+    try {
+      if (mode === 'login') {
+        // D'abord essayer de se connecter
         const { error } = await signIn(formData.email, formData.password)
-        if (error) throw error
+        
+        if (error) {
+          // Si erreur "Invalid login credentials", vérifier si c'est un problème d'email non confirmé
+          if (error.message.includes('Invalid login credentials')) {
+            const emailStatus = await checkEmailStatus(formData.email)
+            
+            if (emailStatus && emailStatus.exists && !emailStatus.email_confirmed) {
+              // L'utilisateur existe mais email non confirmé
+              setEmailNotConfirmed(true)
+              setLoading(false)
+              return
+            }
+          }
+          throw error
+        }
+        
         navigate('/available-rides')
-      } else {
+      } else if (mode === 'register') {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password
@@ -62,7 +143,14 @@ export default function Login() {
         setShowDocumentsPopup(true)
       }
     } catch (error) {
-      setError(error.message)
+      // Traduire les erreurs courantes
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Email ou mot de passe incorrect')
+      } else if (error.message.includes('User already registered')) {
+        setError('Cet email est déjà utilisé')
+      } else {
+        setError(error.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -70,8 +158,15 @@ export default function Login() {
 
   const handleClosePopup = () => {
     setShowDocumentsPopup(false)
-    setIsLogin(true)
+    setMode('login')
     setFormData({ ...formData, password: '' })
+  }
+
+  const switchMode = (newMode) => {
+    setMode(newMode)
+    setError('')
+    setSuccess('')
+    setEmailNotConfirmed(false)
   }
 
   const inputStyle = {
@@ -253,13 +348,81 @@ export default function Login() {
             padding: '32px'
           }}>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '8px', textAlign: 'center' }}>
-              {isLogin ? 'Connexion' : 'Inscription'}
+              {mode === 'login' && 'Connexion'}
+              {mode === 'register' && 'Inscription'}
+              {mode === 'forgot' && 'Mot de passe oublié'}
             </h2>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', textAlign: 'center' }}>
-              {isLogin ? 'Accédez à votre compte' : 'Rejoignez le réseau gratuitement'}
+              {mode === 'login' && 'Accédez à votre compte'}
+              {mode === 'register' && 'Rejoignez le réseau gratuitement'}
+              {mode === 'forgot' && 'Recevez un lien de réinitialisation'}
             </p>
 
-            {error && (
+            {/* Alerte Email non confirmé */}
+            {emailNotConfirmed && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fcd34d',
+                borderRadius: '8px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+                  📧 Confirmez votre adresse email
+                </div>
+                <p style={{ fontSize: '13px', color: '#78350f', marginBottom: '12px' }}>
+                  Un email de confirmation vous a été envoyé. Vérifiez votre boîte de réception <strong>et vos spams</strong>.
+                </p>
+                
+                {resendSuccess ? (
+                  <div style={{
+                    backgroundColor: '#ecfdf5',
+                    color: '#065f46',
+                    padding: '10px 12px',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: '500'
+                  }}>
+                    ✅ Email renvoyé ! Vérifiez votre boîte mail.
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleResendConfirmation}
+                    disabled={resendLoading}
+                    style={{
+                      backgroundColor: '#92400e',
+                      color: 'white',
+                      padding: '10px 16px',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      border: 'none',
+                      cursor: resendLoading ? 'not-allowed' : 'pointer',
+                      opacity: resendLoading ? 0.7 : 1
+                    }}
+                  >
+                    {resendLoading ? 'Envoi...' : '🔄 Renvoyer l\'email de confirmation'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Message de succès */}
+            {success && (
+              <div style={{
+                backgroundColor: '#ecfdf5',
+                color: '#065f46',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                fontSize: '14px'
+              }}>
+                {success}
+              </div>
+            )}
+
+            {/* Message d'erreur */}
+            {error && !emailNotConfirmed && (
               <div style={{
                 backgroundColor: '#fef2f2',
                 color: '#dc2626',
@@ -272,133 +435,211 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {!isLogin && (
-                  <>
-                    <div>
-                      <label style={labelStyle}>Nom / Raison sociale *</label>
-                      <input
-                        type="text"
-                        name="nom"
-                        value={formData.nom}
-                        onChange={handleChange}
-                        placeholder="Votre nom ou société"
-                        style={inputStyle}
-                        required={!isLogin}
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Téléphone *</label>
-                      <input
-                        type="tel"
-                        name="telephone"
-                        value={formData.telephone}
-                        onChange={handleChange}
-                        placeholder="0470123456"
-                        style={inputStyle}
-                        required={!isLogin}
-                      />
-                    </div>
-                  </>
-                )}
-                
-                <div>
-                  <label style={labelStyle}>Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="votre@email.com"
-                    style={inputStyle}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label style={labelStyle}>Mot de passe *</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    style={inputStyle}
-                    required
-                  />
-                </div>
-
-                {/* Case CGU pour inscription */}
-                {!isLogin && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+            {/* Formulaire Mot de passe oublié */}
+            {mode === 'forgot' ? (
+              <form onSubmit={handleForgotPassword}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={labelStyle}>Email *</label>
                     <input
-                      type="checkbox"
-                      name="acceptCGU"
-                      checked={formData.acceptCGU}
-                      onChange={(e) => setFormData({ ...formData, acceptCGU: e.target.checked })}
-                      style={{ marginTop: '4px' }}
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="votre@email.com"
+                      style={inputStyle}
                       required
                     />
-                    <label style={{ fontSize: '13px', color: '#374151' }}>
-                      J'accepte les{' '}
-                      <a 
-                        href="/cgu" 
-                        target="_blank" 
-                        style={{ color: '#1e40af', textDecoration: 'underline' }}
-                      >
-                        CGU
-                      </a>
-                      {' '}et la{' '}
-                      <a 
-                        href="/privacy" 
-                        target="_blank" 
-                        style={{ color: '#1e40af', textDecoration: 'underline' }}
-                      >
-                        Politique de Confidentialité
-                      </a>
-                      {' '}*
-                    </label>
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={loading || (!isLogin && !formData.acceptCGU)}
-                  style={{
-                    width: '100%',
-                    backgroundColor: '#059669',
-                    color: 'white',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    border: 'none',
-                    cursor: 'pointer',
-                    opacity: loading || (!isLogin && !formData.acceptCGU) ? 0.6 : 1,
-                    marginTop: '8px'
-                  }}
-                >
-                  {loading ? 'Chargement...' : isLogin ? 'Se connecter' : "Créer mon compte"}
-                </button>
-              </div>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#059669',
+                      color: 'white',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: loading ? 0.6 : 1,
+                      marginTop: '8px'
+                    }}
+                  >
+                    {loading ? 'Envoi...' : 'Envoyer le lien de réinitialisation'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Formulaire Login / Register */
+              <form onSubmit={handleSubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {mode === 'register' && (
+                    <>
+                      <div>
+                        <label style={labelStyle}>Nom / Raison sociale *</label>
+                        <input
+                          type="text"
+                          name="nom"
+                          value={formData.nom}
+                          onChange={handleChange}
+                          placeholder="Votre nom ou société"
+                          style={inputStyle}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Téléphone *</label>
+                        <input
+                          type="tel"
+                          name="telephone"
+                          value={formData.telephone}
+                          onChange={handleChange}
+                          placeholder="0470123456"
+                          style={inputStyle}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  <div>
+                    <label style={labelStyle}>Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="votre@email.com"
+                      style={inputStyle}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label style={labelStyle}>Mot de passe *</label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      style={inputStyle}
+                      required
+                    />
+                  </div>
+
+                  {/* Lien mot de passe oublié */}
+                  {mode === 'login' && (
+                    <div style={{ textAlign: 'right', marginTop: '-8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => switchMode('forgot')}
+                        style={{
+                          backgroundColor: 'transparent',
+                          color: '#6b7280',
+                          fontSize: '13px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Case CGU pour inscription */}
+                  {mode === 'register' && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        name="acceptCGU"
+                        checked={formData.acceptCGU}
+                        onChange={(e) => setFormData({ ...formData, acceptCGU: e.target.checked })}
+                        style={{ marginTop: '4px' }}
+                        required
+                      />
+                      <label style={{ fontSize: '13px', color: '#374151' }}>
+                        J'accepte les{' '}
+                        <a 
+                          href="/cgu" 
+                          target="_blank" 
+                          style={{ color: '#1e40af', textDecoration: 'underline' }}
+                        >
+                          CGU
+                        </a>
+                        {' '}et la{' '}
+                        <a 
+                          href="/privacy" 
+                          target="_blank" 
+                          style={{ color: '#1e40af', textDecoration: 'underline' }}
+                        >
+                          Politique de Confidentialité
+                        </a>
+                        {' '}*
+                      </label>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || (mode === 'register' && !formData.acceptCGU)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#059669',
+                      color: 'white',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: loading || (mode === 'register' && !formData.acceptCGU) ? 0.6 : 1,
+                      marginTop: '8px'
+                    }}
+                  >
+                    {loading ? 'Chargement...' : mode === 'login' ? 'Se connecter' : "Créer mon compte"}
+                  </button>
+                </div>
+              </form>
+            )}
 
             <div style={{ textAlign: 'center', marginTop: '24px' }}>
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#6b7280',
-                  fontSize: '14px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                {isLogin ? "Pas encore inscrit ? Rejoindre" : 'Déjà un compte ? Se connecter'}
-              </button>
+              {mode === 'forgot' ? (
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#6b7280',
+                    fontSize: '14px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  ← Retour à la connexion
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: '#6b7280',
+                    fontSize: '14px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {mode === 'login' ? "Pas encore inscrit ? Rejoindre" : 'Déjà un compte ? Se connecter'}
+                </button>
+              )}
             </div>
           </div>
 
@@ -449,21 +690,40 @@ export default function Login() {
                 Bienvenue dans le réseau !
               </h2>
               <p style={{ fontSize: '14px', color: '#6b7280' }}>
-                Une dernière étape pour activer votre compte...
+                Dernières étapes pour activer votre compte...
               </p>
             </div>
 
+            {/* Étape 1 - Email */}
+            <div style={{
+              backgroundColor: '#dbeafe',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '16px',
+              border: '1px solid #93c5fd'
+            }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#1e40af', marginBottom: '8px' }}>
+                1️⃣ Confirmez votre email
+              </h3>
+              <p style={{ fontSize: '13px', color: '#1d4ed8' }}>
+                Un email de confirmation vient d'être envoyé à <strong>{formData.email}</strong>. 
+                Cliquez sur le lien pour activer votre compte. <strong>Vérifiez aussi vos spams !</strong>
+              </p>
+            </div>
+
+            {/* Étape 2 - Documents */}
             <div style={{
               backgroundColor: '#fef3c7',
               borderRadius: '12px',
-              padding: '20px',
-              marginBottom: '24px'
+              padding: '16px',
+              marginBottom: '24px',
+              border: '1px solid #fcd34d'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', marginBottom: '12px' }}>
-                📧 Envoyez vos documents par email
+              <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+                2️⃣ Envoyez vos documents
               </h3>
-              <p style={{ fontSize: '14px', color: '#78350f', marginBottom: '16px' }}>
-                Pour valider votre profil et commencer à utiliser la plateforme :
+              <p style={{ fontSize: '13px', color: '#78350f', marginBottom: '12px' }}>
+                Pour valider votre profil et pouvoir candidater aux courses :
               </p>
               
               <div style={{
@@ -471,33 +731,33 @@ export default function Login() {
                 padding: '12px',
                 borderRadius: '8px',
                 textAlign: 'center',
-                marginBottom: '16px'
+                marginBottom: '12px'
               }}>
                 <a 
                   href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
                   style={{
-                    fontSize: '18px',
+                    fontSize: '16px',
                     fontWeight: 'bold',
                     color: '#1e40af',
                     textDecoration: 'none'
                   }}
                 >
-                  shuttlemarketplace@gmail.com
+                  📧 shuttlemarketplace@gmail.com
                 </a>
               </div>
 
               <ul style={{ 
-                fontSize: '13px', 
+                fontSize: '12px', 
                 color: '#78350f', 
                 paddingLeft: '20px',
                 margin: 0,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '4px'
+                gap: '2px'
               }}>
                 <li>Autorisation</li>
                 <li>Attestation véhicule</li>
-                <li>Attestation d'assurance transport de personnes</li>
+                <li>Attestation d'assurance</li>
                 <li>Certificat d'immatriculation</li>
                 <li>Carte verte</li>
               </ul>
@@ -512,7 +772,7 @@ export default function Login() {
               color: '#065f46',
               textAlign: 'center'
             }}>
-              ⏱️ Validation sous <strong>24-48h</strong> après réception
+              ⏱️ Validation sous <strong>24-48h</strong> après réception des documents
             </div>
 
             <button

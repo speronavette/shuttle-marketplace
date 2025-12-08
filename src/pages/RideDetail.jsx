@@ -69,7 +69,7 @@ export default function RideDetail() {
         .select('id')
         .eq('course_id', id)
         .eq('chauffeur_id', user.id)
-        .maybeSingle()
+        .single()
 
       if (data) setHasCandidature(true)
     } catch (error) {
@@ -281,33 +281,50 @@ export default function RideDetail() {
         {/* Alerte profil non validé */}
         {user && !isOwner && !isValidated && (
           <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
             borderRadius: '12px',
-            padding: '16px',
+            padding: '20px',
             marginBottom: '16px'
           }}>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: '#dc2626', marginBottom: '8px' }}>
-              ⚠️ Profil en attente de validation
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
+                  Profil en attente de validation
+                </div>
+                <p style={{ fontSize: '14px', color: '#78350f', margin: '0 0 12px 0' }}>
+                  Pour pouvoir candidater aux courses, envoyez vos documents :
+                </p>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '6px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>📄 Autorisation d'exploiter</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>🚗 Attestation véhicule</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>🛡️ Assurance transport de personnes</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>📋 Certificat d'immatriculation</div>
+                  <div style={{ fontSize: '13px', color: '#78350f' }}>💳 Carte verte</div>
+                </div>
+                <a
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#92400e',
+                    color: 'white',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    textDecoration: 'none'
+                  }}
+                >
+                  📧 Envoyer mes documents
+                </a>
+              </div>
             </div>
-            <p style={{ fontSize: '14px', color: '#991b1b', margin: '0 0 12px 0' }}>
-              Pour pouvoir candidater aux courses, vous devez d'abord faire valider votre profil en envoyant vos documents.
-            </p>
-            <a
-              href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
-              style={{
-                display: 'inline-block',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                textDecoration: 'none'
-              }}
-            >
-              📧 Envoyer mes documents
-            </a>
           </div>
         )}
 

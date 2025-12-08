@@ -52,16 +52,16 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
-  // Fonction de connexion
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+// Fonction de connexion
+const signIn = async (email, password) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
-    if (error) throw error
-    return data
-  }
+  // Retourner l'erreur au lieu de la lancer
+  return { data, error }
+}
 
   // Fonction de déconnexion
   const signOut = async () => {

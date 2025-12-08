@@ -268,3 +268,67 @@ export const sendAcceptationNotification = async ({ course, chauffeurEmail, soci
 
   return await sendEmail({ to: chauffeurEmail, subject, html })
 }
+
+// NOUVELLE FONCTION - Email pour les candidats non retenus
+export const sendNonRetenuNotification = async ({ course, chauffeurEmail, chauffeurNom }) => {
+  const subject = `❌ Candidature non retenue : ${course.depart} → ${course.arrivee}`
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-BE', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #6b7280; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">🚐 Shuttle Marketplace</h1>
+      </div>
+      
+      <div style="padding: 30px; background-color: #f9fafb;">
+        <h2 style="color: #374151; margin-top: 0;">Candidature non retenue</h2>
+        
+        <p style="color: #374151; font-size: 16px;">
+          Bonjour ${chauffeurNom},
+        </p>
+        
+        <p style="color: #374151; font-size: 16px;">
+          Malheureusement, votre candidature pour la course suivante n'a pas été retenue :
+        </p>
+        
+        <div style="background-color: white; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #e5e7eb;">
+          <h3 style="margin-top: 0; color: #111827; font-size: 18px;">
+            ${course.depart} → ${course.arrivee}
+          </h3>
+          <p style="color: #6b7280; margin: 8px 0 0 0;">
+            📅 ${formatDate(course.date_heure)}
+          </p>
+        </div>
+        
+        <div style="background-color: #ecfdf5; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #a7f3d0;">
+          <p style="color: #065f46; margin: 0; font-size: 15px;">
+            💪 <strong>Ne vous découragez pas !</strong><br><br>
+            D'autres courses vous attendent sur Shuttle Marketplace. Consultez les nouvelles opportunités dès maintenant.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://shuttle-marketplace.be/available-rides" 
+             style="background-color: #059669; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+            Voir les courses disponibles
+          </a>
+        </div>
+      </div>
+      
+      <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+        <p>Vous recevez cet email car vous êtes inscrit sur Shuttle Marketplace.</p>
+      </div>
+    </div>
+  `
+
+  return await sendEmail({ to: chauffeurEmail, subject, html })
+}

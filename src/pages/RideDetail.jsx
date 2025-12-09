@@ -51,10 +51,11 @@ export default function RideDetail() {
         .from('users')
         .select('valide')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
-      setUserProfile(data)
+      if (!error && data) {
+        setUserProfile(data)
+      }
     } catch (error) {
       console.error('Erreur profil:', error)
     }
@@ -64,16 +65,18 @@ export default function RideDetail() {
     if (!user) return
     
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('candidatures')
         .select('id')
         .eq('course_id', id)
         .eq('chauffeur_id', user.id)
-        .single()
+        .maybeSingle()  // maybeSingle() ne génère pas d'erreur si 0 résultat
 
-      if (data) setHasCandidature(true)
+      if (!error && data) {
+        setHasCandidature(true)
+      }
     } catch (error) {
-      // Pas de candidature existante
+      console.error('Erreur vérification candidature:', error)
     }
   }
 
@@ -366,6 +369,10 @@ export default function RideDetail() {
             <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
               <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>👥 Passagers</div>
               <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>{course.nb_passagers} personne(s)</div>
+            </div>
+            <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>🧳 Bagages</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>{course.nb_bagages || 0}</div>
             </div>
             <div style={{ backgroundColor: '#ecfdf5', padding: '16px', borderRadius: '8px' }}>
               <div style={{ fontSize: '13px', color: '#059669', marginBottom: '4px' }}>💰 Prix</div>

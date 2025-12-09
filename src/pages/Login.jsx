@@ -26,8 +26,20 @@ export default function Login() {
     acceptCGU: false
   })
 
+  // Vehicule lors de l'inscription
+  const [vehicule, setVehicule] = useState({
+    marque: '',
+    modele: '',
+    nb_places: 4
+  })
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleVehiculeChange = (e) => {
+    const { name, value } = e.target
+    setVehicule({ ...vehicule, [name]: value })
   }
 
   const handleResendConfirmation = async () => {
@@ -116,8 +128,20 @@ export default function Login() {
           throw error
         }
         
-        navigate('/available-rides')
+        // Redirection admin si c'est l'email admin
+        if (formData.email.toLowerCase() === 'shuttlemarketplace@gmail.com') {
+          navigate('/admin')
+        } else {
+          navigate('/available-rides')
+        }
       } else if (mode === 'register') {
+        // Verifier que le vehicule est renseigne
+        if (!vehicule.marque || !vehicule.modele) {
+          setError('Veuillez renseigner au moins un vehicule (marque et modele)')
+          setLoading(false)
+          return
+        }
+
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password
@@ -138,6 +162,21 @@ export default function Login() {
               }
             ])
           if (profileError) throw profileError
+
+          // Ajouter le vehicule
+          const { error: vehiculeError } = await supabase
+            .from('vehicules')
+            .insert([
+              {
+                user_id: authData.user.id,
+                marque: vehicule.marque,
+                modele: vehicule.modele,
+                nb_places: parseInt(vehicule.nb_places)
+              }
+            ])
+          if (vehiculeError) {
+            console.error('Erreur vehicule:', vehiculeError)
+          }
         }
 
         setShowDocumentsPopup(true)
@@ -160,6 +199,7 @@ export default function Login() {
     setShowDocumentsPopup(false)
     setMode('login')
     setFormData({ ...formData, password: '' })
+    setVehicule({ marque: '', modele: '', nb_places: 4 })
   }
 
   const switchMode = (newMode) => {
@@ -549,6 +589,62 @@ export default function Login() {
                       >
                         Mot de passe oublié ?
                       </button>
+                    </div>
+                  )}
+
+                  {/* Section vehicule pour inscription */}
+                  {mode === 'register' && (
+                    <div style={{
+                      backgroundColor: '#f0f9ff',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      border: '1px solid #bae6fd'
+                    }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#0369a1', marginBottom: '12px' }}>
+                        🚗 Votre vehicule principal *
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '12px', color: '#0369a1' }}>Marque *</label>
+                          <input
+                            type="text"
+                            name="marque"
+                            value={vehicule.marque}
+                            onChange={handleVehiculeChange}
+                            placeholder="Mercedes, VW..."
+                            style={{ ...inputStyle, padding: '10px', fontSize: '14px' }}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label style={{ ...labelStyle, fontSize: '12px', color: '#0369a1' }}>Modele *</label>
+                          <input
+                            type="text"
+                            name="modele"
+                            value={vehicule.modele}
+                            onChange={handleVehiculeChange}
+                            placeholder="Vito, Transporter..."
+                            style={{ ...inputStyle, padding: '10px', fontSize: '14px' }}
+                            required
+                          />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ ...labelStyle, fontSize: '12px', color: '#0369a1' }}>Nombre de places (hors chauffeur) *</label>
+                          <select
+                            name="nb_places"
+                            value={vehicule.nb_places}
+                            onChange={handleVehiculeChange}
+                            style={{ ...inputStyle, padding: '10px', fontSize: '14px' }}
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                              <option key={n} value={n}>{n} place{n > 1 ? 's' : ''}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '11px', color: '#0284c7', marginTop: '8px', marginBottom: 0 }}>
+                        Vous pourrez ajouter d'autres vehicules dans votre profil
+                      </p>
                     </div>
                   )}
 

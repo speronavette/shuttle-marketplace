@@ -13,6 +13,7 @@ export default function MyCourses() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
   const [expandedCourse, setExpandedCourse] = useState(null)
+  const [candidatsVehicules, setCandidatsVehicules] = useState({})
 
   useEffect(() => {
     if (user) {
@@ -42,6 +43,48 @@ export default function MyCourses() {
       console.error('Erreur:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadVehiculesForCandidats = async (candidatures) => {
+    if (!candidatures || candidatures.length === 0) return
+
+    const chauffeurIds = candidatures
+      .map(c => c.chauffeur?.id)
+      .filter(id => id && !candidatsVehicules[id])
+
+    if (chauffeurIds.length === 0) return
+
+    try {
+      const { data, error } = await supabase
+        .from('vehicules')
+        .select('*')
+        .in('user_id', chauffeurIds)
+
+      if (error) throw error
+
+      const vehiculesParChauffeur = {}
+      chauffeurIds.forEach(id => vehiculesParChauffeur[id] = [])
+      
+      data?.forEach(vehicule => {
+        if (!vehiculesParChauffeur[vehicule.user_id]) {
+          vehiculesParChauffeur[vehicule.user_id] = []
+        }
+        vehiculesParChauffeur[vehicule.user_id].push(vehicule)
+      })
+
+      setCandidatsVehicules(prev => ({ ...prev, ...vehiculesParChauffeur }))
+    } catch (error) {
+      console.error('Erreur chargement vehicules:', error)
+    }
+  }
+
+  const handleExpandCourse = async (courseId, candidatures) => {
+    if (expandedCourse === courseId) {
+      setExpandedCourse(null)
+    } else {
+      setExpandedCourse(courseId)
+      await loadVehiculesForCandidats(candidatures)
     }
   }
 
@@ -266,6 +309,7 @@ export default function MyCourses() {
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Bagages</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Candidats</th>
@@ -305,6 +349,9 @@ export default function MyCourses() {
                           </td>
                           <td style={{ padding: '14px 16px', textAlign: 'center', color: '#111827' }}>
                             {course.nb_passagers}
+                          </td>
+                          <td style={{ padding: '14px 16px', textAlign: 'center', color: '#6b7280' }}>
+                            {course.nb_bagages || 0}
                           </td>
                           <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                             <span style={{
@@ -351,7 +398,7 @@ export default function MyCourses() {
                           <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                             {course.statut === 'disponible' && hasCandidatures ? (
                               <button
-                                onClick={() => setExpandedCourse(isExpanded ? null : course.id)}
+                                onClick={() => handleExpandCourse(course.id, course.candidatures)}
                                 style={{
                                   backgroundColor: '#1e40af',
                                   color: 'white',
@@ -410,7 +457,7 @@ export default function MyCourses() {
                         {/* Ligne expandable pour les candidatures */}
                         {isExpanded && (
                           <tr key={`${course.id}-expanded`}>
-                            <td colSpan="8" style={{ 
+                            <td colSpan="9" style={{ 
                               padding: '0',
                               backgroundColor: '#f0f9ff',
                               borderBottom: '1px solid #e5e7eb'
@@ -424,49 +471,85 @@ export default function MyCourses() {
                                 }}>
                                   Choisir un chauffeur parmi {course.candidatures?.length} candidature(s)
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  {course.candidatures?.map((candidature) => (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                  {course.candidatures?.map((candidature) => {
+                                    const vehicules = candidatsVehicules[candidature.chauffeur?.id] || []
+                                    
+                                    return (
                                     <div
                                       key={candidature.id}
                                       style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
                                         backgroundColor: 'white',
-                                        padding: '12px 16px',
+                                        padding: '16px',
                                         borderRadius: '8px',
                                         border: '1px solid #e5e7eb'
                                       }}
                                     >
-                                      <div>
-                                        <div style={{ fontWeight: '600', color: '#111827' }}>
-                                          {candidature.chauffeur?.nom}
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                                        <div style={{ flex: 1 }}>
+                                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '16px', marginBottom: '6px' }}>
+                                            {candidature.chauffeur?.nom}
+                                          </div>
+                                          <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '8px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                                            <span>📞 {candidature.chauffeur?.telephone}</span>
+                                            <span>⭐ {candidature.chauffeur?.note_moyenne_chauffeur > 0 ? `${candidature.chauffeur.note_moyenne_chauffeur}/5` : 'Nouveau'}</span>
+                                            <span>🚗 {candidature.chauffeur?.nb_courses_chauffeur || 0} courses</span>
+                                          </div>
+                                          
+                                          {vehicules.length > 0 && (
+                                            <div style={{
+                                              backgroundColor: '#f0fdf4',
+                                              borderRadius: '6px',
+                                              padding: '10px 12px',
+                                              marginTop: '4px'
+                                            }}>
+                                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#065f46', marginBottom: '6px' }}>
+                                                🚐 Vehicule{vehicules.length > 1 ? 's' : ''} :
+                                              </div>
+                                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                                {vehicules.map((v) => (
+                                                  <span
+                                                    key={v.id}
+                                                    style={{
+                                                      backgroundColor: 'white',
+                                                      border: '1px solid #a7f3d0',
+                                                      borderRadius: '4px',
+                                                      padding: '4px 8px',
+                                                      fontSize: '13px',
+                                                      color: '#047857'
+                                                    }}
+                                                  >
+                                                    <strong>{v.marque} {v.modele}</strong> • {v.nb_places} places
+                                                    {v.couleur && ` • ${v.couleur}`}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
                                         </div>
-                                        <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                                          📞 {candidature.chauffeur?.telephone} • 
-                                          ⭐ {candidature.chauffeur?.note_moyenne_chauffeur > 0 ? `${candidature.chauffeur.note_moyenne_chauffeur}/5` : 'Nouveau'} • 
-                                          🚗 {candidature.chauffeur?.nb_courses_chauffeur || 0} courses
-                                        </div>
+                                        
+                                        <button
+                                          onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, course.prix, course.candidatures)}
+                                          disabled={actionLoading === `accept-${course.id}-${candidature.chauffeur?.id}`}
+                                          style={{
+                                            backgroundColor: '#059669',
+                                            color: 'white',
+                                            padding: '12px 24px',
+                                            borderRadius: '6px',
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            opacity: actionLoading ? 0.7 : 1,
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                        >
+                                          Accepter
+                                        </button>
                                       </div>
-                                      <button
-                                        onClick={() => handleAcceptCandidature(course.id, candidature.chauffeur?.id, course.prix, course.candidatures)}
-                                        disabled={actionLoading === `accept-${course.id}-${candidature.chauffeur?.id}`}
-                                        style={{
-                                          backgroundColor: '#059669',
-                                          color: 'white',
-                                          padding: '10px 20px',
-                                          borderRadius: '6px',
-                                          fontSize: '14px',
-                                          fontWeight: '500',
-                                          border: 'none',
-                                          cursor: 'pointer',
-                                          opacity: actionLoading ? 0.7 : 1
-                                        }}
-                                      >
-                                        ✓ Accepter
-                                      </button>
                                     </div>
-                                  ))}
+                                    )
+                                  })}
                                 </div>
                               </div>
                             </td>

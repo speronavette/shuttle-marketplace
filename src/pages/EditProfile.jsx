@@ -12,6 +12,18 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   
+  // Vehicules
+  const [vehicules, setVehicules] = useState([])
+  const [showAddVehicule, setShowAddVehicule] = useState(false)
+  const [newVehicule, setNewVehicule] = useState({
+    marque: '',
+    modele: '',
+    nb_places: 4,
+    immatriculation: '',
+    couleur: ''
+  })
+  const [vehiculeLoading, setVehiculeLoading] = useState(false)
+  
   const [formData, setFormData] = useState({
     nom: '',
     telephone: '',
@@ -33,8 +45,74 @@ export default function EditProfile() {
   useEffect(() => {
     if (user) {
       fetchProfile()
+      fetchVehicules()
     }
   }, [user])
+
+  const fetchVehicules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicules')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      setVehicules(data || [])
+    } catch (error) {
+      console.error('Erreur vehicules:', error)
+    }
+  }
+
+  const handleAddVehicule = async () => {
+    if (!newVehicule.marque || !newVehicule.modele || !newVehicule.nb_places) {
+      setMessage('Veuillez remplir la marque, le modele et le nombre de places')
+      return
+    }
+
+    setVehiculeLoading(true)
+    try {
+      const { error } = await supabase
+        .from('vehicules')
+        .insert([{
+          user_id: user.id,
+          marque: newVehicule.marque,
+          modele: newVehicule.modele,
+          nb_places: parseInt(newVehicule.nb_places),
+          immatriculation: newVehicule.immatriculation || null,
+          couleur: newVehicule.couleur || null
+        }])
+
+      if (error) throw error
+
+      setMessage('Vehicule ajoute !')
+      setNewVehicule({ marque: '', modele: '', nb_places: 4, immatriculation: '', couleur: '' })
+      setShowAddVehicule(false)
+      fetchVehicules()
+    } catch (error) {
+      setMessage('Erreur: ' + error.message)
+    } finally {
+      setVehiculeLoading(false)
+    }
+  }
+
+  const handleDeleteVehicule = async (vehiculeId) => {
+    if (!confirm('Supprimer ce vehicule ?')) return
+
+    try {
+      const { error } = await supabase
+        .from('vehicules')
+        .delete()
+        .eq('id', vehiculeId)
+
+      if (error) throw error
+
+      setMessage('Vehicule supprime')
+      fetchVehicules()
+    } catch (error) {
+      setMessage('Erreur: ' + error.message)
+    }
+  }
 
   const fetchProfile = async () => {
     try {
@@ -219,13 +297,207 @@ export default function EditProfile() {
             </div>
           </div>
 
+          {/* Mes vehicules */}
+          <div style={sectionStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                🚗 Mes vehicules
+              </h3>
+              {!showAddVehicule && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddVehicule(true)}
+                  style={{
+                    backgroundColor: '#059669',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Ajouter
+                </button>
+              )}
+            </div>
+
+            {/* Liste des vehicules */}
+            {vehicules.length === 0 && !showAddVehicule ? (
+              <div style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                padding: '24px',
+                textAlign: 'center',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>🚗</div>
+                <p style={{ margin: 0 }}>Aucun vehicule enregistre</p>
+                <p style={{ fontSize: '13px', margin: '4px 0 0 0' }}>
+                  Ajoutez vos vehicules pour que les donneurs d'ordre connaissent votre flotte
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {vehicules.map((vehicule) => (
+                  <div
+                    key={vehicule.id}
+                    style={{
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
+                        {vehicule.marque} {vehicule.modele}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
+                        {vehicule.nb_places} places
+                        {vehicule.couleur && ` - ${vehicule.couleur}`}
+                        {vehicule.immatriculation && ` - ${vehicule.immatriculation}`}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteVehicule(vehicule.id)}
+                      style={{
+                        backgroundColor: '#fef2f2',
+                        color: '#dc2626',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulaire d'ajout */}
+            {showAddVehicule && (
+              <div style={{
+                backgroundColor: '#ecfdf5',
+                borderRadius: '8px',
+                padding: '16px',
+                marginTop: vehicules.length > 0 ? '12px' : '0'
+              }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#065f46', marginBottom: '12px' }}>
+                  Nouveau vehicule
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#065f46' }}>Marque *</label>
+                    <input
+                      type="text"
+                      value={newVehicule.marque}
+                      onChange={(e) => setNewVehicule({ ...newVehicule, marque: e.target.value })}
+                      placeholder="Mercedes, Volkswagen..."
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#065f46' }}>Modele *</label>
+                    <input
+                      type="text"
+                      value={newVehicule.modele}
+                      onChange={(e) => setNewVehicule({ ...newVehicule, modele: e.target.value })}
+                      placeholder="Vito, Transporter..."
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#065f46' }}>Nombre de places (hors chauffeur) *</label>
+                    <select
+                      value={newVehicule.nb_places}
+                      onChange={(e) => setNewVehicule({ ...newVehicule, nb_places: e.target.value })}
+                      style={inputStyle}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                        <option key={n} value={n}>{n} place{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#065f46' }}>Couleur</label>
+                    <input
+                      type="text"
+                      value={newVehicule.couleur}
+                      onChange={(e) => setNewVehicule({ ...newVehicule, couleur: e.target.value })}
+                      placeholder="Noir, Blanc..."
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ ...labelStyle, color: '#065f46' }}>Immatriculation</label>
+                    <input
+                      type="text"
+                      value={newVehicule.immatriculation}
+                      onChange={(e) => setNewVehicule({ ...newVehicule, immatriculation: e.target.value })}
+                      placeholder="1-ABC-123"
+                      style={inputStyle}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddVehicule(false)
+                      setNewVehicule({ marque: '', modele: '', nb_places: 4, immatriculation: '', couleur: '' })
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      border: '1px solid #d1d5db',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddVehicule}
+                    disabled={vehiculeLoading}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#059669',
+                      color: 'white',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: vehiculeLoading ? 0.7 : 1
+                    }}
+                  >
+                    {vehiculeLoading ? 'Ajout...' : 'Ajouter ce vehicule'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Informations de facturation */}
           <div style={sectionStyle}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-              🏢 Informations de facturation
+              Informations de facturation
             </h3>
             <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
-              Ces informations seront partagées avec vos partenaires après acceptation d'une course.
+              Ces informations seront partagees avec vos partenaires apres acceptation d'une course.
             </p>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

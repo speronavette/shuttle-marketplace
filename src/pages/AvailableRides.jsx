@@ -47,10 +47,11 @@ export default function AvailableRides() {
         .from('users')
         .select('valide')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
-      setUserProfile(data)
+      if (!error && data) {
+        setUserProfile(data)
+      }
     } catch (error) {
       console.error('Erreur profil:', error)
     }
@@ -242,7 +243,8 @@ export default function AvailableRides() {
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Société</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Bagages</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Societe</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Candidats</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
@@ -297,6 +299,9 @@ export default function AvailableRides() {
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'center', color: '#111827' }}>
                           {course.nb_passagers}
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'center', color: '#6b7280' }}>
+                          {course.nb_bagages || 0}
                         </td>
                         <td style={{ padding: '14px 16px', color: '#6b7280' }}>
                           <div>{course.societe?.nom || '-'}</div>

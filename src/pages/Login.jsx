@@ -271,8 +271,8 @@ export default function Login() {
               marginBottom: '12px',
               lineHeight: '1.2'
             }}>
-              Fini les courses perdues.<br />
-              Fini les retours à vide.
+              Optimisez vos courses.<br />
+              Rentabilisez vos trajets.
             </h1>
             
             <p style={{ 
@@ -281,7 +281,7 @@ export default function Login() {
               lineHeight: '1.6', 
               marginBottom: '24px' 
             }}>
-              La première plateforme belge d'entraide entre professionnels de la navette aéroport.
+              Le réseau belge des navettistes qui s'entraident.
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -292,10 +292,10 @@ export default function Login() {
                 borderLeft: '4px solid #059669'
               }}>
                 <div style={{ fontWeight: '700', color: '#065f46', fontSize: '15px', marginBottom: '6px' }}>
-                  🚐 Trop de demandes ?
+                  📤 Vous avez trop de demandes ?
                 </div>
                 <div style={{ fontSize: '14px', color: '#047857', lineHeight: '1.5' }}>
-                  Publiez vos courses excédentaires. Un confrère de confiance les effectue, votre client est servi, vous gardez la relation.
+                  Sous-traitez vos courses excédentaires à un confrère vérifié. Votre client est servi, vous gardez la relation.
                 </div>
               </div>
               
@@ -306,10 +306,10 @@ export default function Login() {
                 borderLeft: '4px solid #2563eb'
               }}>
                 <div style={{ fontWeight: '700', color: '#1e40af', fontSize: '15px', marginBottom: '6px' }}>
-                  📅 Un creux dans le planning ?
+                  🚗 Vous avez des disponibilités ?
                 </div>
                 <div style={{ fontSize: '14px', color: '#1d4ed8', lineHeight: '1.5' }}>
-                  Consultez les courses disponibles en temps réel. Candidatez en un clic. Roulez plus, gagnez plus.
+                  Récupérez des courses sur vos zones de passage. Moins de retours à vide, plus de revenus.
                 </div>
               </div>
             </div>
@@ -341,8 +341,35 @@ export default function Login() {
                 fontWeight: '600',
                 color: '#059669'
               }}>
-                <span>✓</span> Vous fixez votre prix
+                <span>✓</span> Vous fixez vos prix
               </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#059669'
+              }}>
+                <span>✓</span> Simple et rapide
+              </div>
+            </div>
+
+            {/* Lien Comment ça marche */}
+            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <a 
+                href="/comment-ca-marche"
+                style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                🤔 Comment ça marche exactement ? <span style={{ color: '#2563eb', textDecoration: 'underline' }}>Lire le guide →</span>
+              </a>
             </div>
           </div>
 
@@ -394,7 +421,7 @@ export default function Login() {
             </h2>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px', textAlign: 'center' }}>
               {mode === 'login' && 'Accédez à votre compte'}
-              {mode === 'register' && 'Rejoignez le réseau gratuitement'}
+              {mode === 'register' && 'Rejoignez le réseau'}
               {mode === 'forgot' && 'Recevez un lien de réinitialisation'}
             </p>
 

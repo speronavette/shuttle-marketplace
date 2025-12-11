@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
+import Chat from '../components/Chat'
 import { sendCandidatureNotification } from '../services/emailService'
 
 export default function RideDetail() {
@@ -29,7 +30,8 @@ export default function RideDetail() {
         .from('courses')
         .select(`
           *,
-          societe:users!societe_id (id, nom, telephone, note_moyenne, nb_courses_total, raison_sociale, numero_tva, rue, numero, code_postal, commune, email_facturation)
+          societe:users!societe_id (id, nom, telephone, note_moyenne, nb_courses_total, raison_sociale, numero_tva, rue, numero, code_postal, commune, email_facturation),
+          chauffeur_attribue:users!chauffeur_attribue_id (id, nom, telephone)
         `)
         .eq('id', id)
         .single()
@@ -572,6 +574,16 @@ export default function RideDetail() {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Chat - visible si course attribuée (pour chauffeur attribué OU donneur d'ordre) */}
+          {course.statut !== 'disponible' && (isAttributedToMe || isOwner) && course.chauffeur_attribue_id && (
+            <div style={{ marginBottom: '24px' }}>
+              <Chat 
+                courseId={course.id} 
+                otherUserName={isOwner ? course.chauffeur_attribue?.nom : course.societe?.nom}
+              />
             </div>
           )}
 

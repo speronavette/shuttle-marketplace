@@ -52,23 +52,40 @@ export default function Header() {
 
         {/* Déconnexion */}
         {user ? (
-          <button
-            onClick={handleLogout}
-            style={{
-              backgroundColor: 'transparent',
-              color: '#6b7280',
-              fontSize: '14px',
-              fontWeight: '500',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px 12px',
-              borderRadius: '6px'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-          >
-            Déconnexion
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <a
+              href="/comment-ca-marche"
+              style={{
+                color: '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                textDecoration: 'none',
+                padding: '8px 12px',
+                borderRadius: '6px'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              ❓ Aide
+            </a>
+            <button
+              onClick={handleLogout}
+              style={{
+                backgroundColor: 'transparent',
+                color: '#6b7280',
+                fontSize: '14px',
+                fontWeight: '500',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                borderRadius: '6px'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              Déconnexion
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => navigate('/login')}

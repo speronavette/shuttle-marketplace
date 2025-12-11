@@ -100,17 +100,38 @@ export default function AdminDashboard() {
   const handleToggleValidation = async (userId, currentStatus) => {
     setActionLoading(userId)
     try {
-      const { error } = await supabase
+      const newStatus = !currentStatus
+      
+      const { data, error } = await supabase
         .from('users')
-        .update({ valide: !currentStatus })
+        .update({ valide: newStatus })
         .eq('id', userId)
+        .select()
 
       if (error) throw error
 
-      // Rafraîchir les données
-      await fetchAllData()
+      console.log('Mise à jour effectuée:', data)
+
+      // Mettre à jour l'état local immédiatement
+      setAllUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, valide: newStatus } : u
+      ))
+      setSocietes(prev => prev.map(u => 
+        u.id === userId ? { ...u, valide: newStatus } : u
+      ))
+      setChauffeurs(prev => prev.map(u => 
+        u.id === userId ? { ...u, valide: newStatus } : u
+      ))
+
+      // Recalculer les stats
+      setStats(prev => ({
+        ...prev,
+        usersNonValides: prev.usersNonValides + (newStatus ? -1 : 1)
+      }))
+
       alert(currentStatus ? '❌ Utilisateur invalidé' : '✅ Utilisateur validé')
     } catch (error) {
+      console.error('Erreur validation:', error)
       alert('Erreur: ' + error.message)
     } finally {
       setActionLoading(null)

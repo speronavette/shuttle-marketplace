@@ -301,59 +301,95 @@ return (
                             </span>
                           </td>
                           <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                            {course.statut === 'disponible' ? (
-                              <button
-                                onClick={() => handleAnnulerCandidature(candidature.id)}
-                                disabled={actionLoading === `annuler-${candidature.id}`}
-                                style={{
-                                  backgroundColor: '#fef2f2',
-                                  color: '#dc2626',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  fontWeight: '500',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  opacity: actionLoading === `annuler-${candidature.id}` ? 0.7 : 1
-                                }}
-                              >
-                                Annuler
-                              </button>
-                            ) : canExpand ? (
-                              <button
-                                onClick={() => setExpandedCandidature(isExpanded ? null : candidature.id)}
-                                style={{
-                                  backgroundColor: '#059669',
-                                  color: 'white',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  fontWeight: '500',
-                                  border: 'none',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {isExpanded ? '▲ Fermer' : '▼ Détails'}
-                              </button>
-                            ) : course.statut === 'terminee' && isAttributedToMe ? (
-                              <button
-                                onClick={() => navigate(`/rate/${course.id}`)}
-                                style={{
-                                  backgroundColor: '#f59e0b',
-                                  color: 'white',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  fontWeight: '500',
-                                  border: 'none',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                ⭐ Noter
-                              </button>
-                            ) : (
-                              <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
-                            )}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              {course.statut === 'disponible' ? (
+                                <button
+                                  onClick={() => handleAnnulerCandidature(candidature.id)}
+                                  disabled={actionLoading === `annuler-${candidature.id}`}
+                                  style={{
+                                    backgroundColor: '#fef2f2',
+                                    color: '#dc2626',
+                                    padding: '8px 16px',
+                                    borderRadius: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    opacity: actionLoading === `annuler-${candidature.id}` ? 0.7 : 1
+                                  }}
+                                >
+                                  Annuler
+                                </button>
+                              ) : canExpand ? (
+                                <>
+                                  <button
+                                    onClick={() => setExpandedCandidature(isExpanded ? null : candidature.id)}
+                                    style={{
+                                      backgroundColor: '#059669',
+                                      color: 'white',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {isExpanded ? '▲ Fermer' : '▼ Détails'}
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/ride/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      color: 'white',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬 Chat
+                                  </button>
+                                </>
+                              ) : course.statut === 'terminee' && isAttributedToMe ? (
+                                <>
+                                  <button
+                                    onClick={() => navigate(`/rate/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#f59e0b',
+                                      color: 'white',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ⭐ Noter
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/ride/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      color: 'white',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontSize: '13px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬 Chat
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                         

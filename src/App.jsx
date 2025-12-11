@@ -13,7 +13,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import CGU from './pages/CGU'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import ResetPassword from './pages/ResetPassword'
-
+import HowItWorks from './pages/HowItWorks';
 
 
 
@@ -36,6 +36,7 @@ function App() {
           <Route path="/cgu" element={<CGU />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/comment-ca-marche" element={<HowItWorks />} />
         </Routes>
       </AuthProvider>
     </Router>

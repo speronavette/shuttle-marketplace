@@ -583,6 +583,8 @@ export default function RideDetail() {
               <Chat 
                 courseId={course.id} 
                 otherUserName={isOwner ? course.chauffeur_attribue?.nom : course.societe?.nom}
+                course={course}
+                otherUserId={isOwner ? course.chauffeur_attribue_id : course.societe_id}
               />
             </div>
           )}

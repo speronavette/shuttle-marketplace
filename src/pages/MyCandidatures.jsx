@@ -224,12 +224,12 @@ export default function MyCandidatures() {
                   <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Date</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Société</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,7 +240,7 @@ export default function MyCandidatures() {
                     const isAttributedToMe = course.chauffeur_attribue_id === user.id
                     const canExpand = isAttributedToMe && (course.statut === 'attribuee' || course.statut === 'terminee')
                     
-return (
+                    return (
                       <React.Fragment key={candidature.id}>
                         <tr
                           style={{ 
@@ -256,6 +256,82 @@ return (
                           </td>
                           <td style={{ padding: '14px 16px', color: '#111827' }}>
                             {formatTime(course.date_heure)}
+                          </td>
+                          {/* Action - Déplacé ici */}
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap' }}>
+                              {course.statut === 'disponible' ? (
+                                <button
+                                  onClick={() => handleAnnulerCandidature(candidature.id)}
+                                  disabled={actionLoading === `annuler-${candidature.id}`}
+                                  style={{
+                                    backgroundColor: '#fef2f2',
+                                    color: '#dc2626',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    opacity: actionLoading === `annuler-${candidature.id}` ? 0.7 : 1
+                                  }}
+                                >
+                                  Annuler
+                                </button>
+                              ) : canExpand ? (
+                                <>
+                                  <button
+                                    onClick={() => setExpandedCandidature(isExpanded ? null : candidature.id)}
+                                    style={{
+                                      backgroundColor: '#059669',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {isExpanded ? '▲' : '▼'}
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/ride/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬
+                                  </button>
+                                  {course.statut === 'terminee' && (
+                                    <button
+                                      onClick={() => navigate(`/rate/${course.id}`)}
+                                      style={{
+                                        backgroundColor: '#f59e0b',
+                                        color: 'white',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        border: 'none',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      ⭐
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: '14px 16px' }}>
                             <div style={{ fontWeight: '600', color: '#111827' }}>
@@ -299,97 +375,6 @@ return (
                             }}>
                               {statut.label}
                             </span>
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                              {course.statut === 'disponible' ? (
-                                <button
-                                  onClick={() => handleAnnulerCandidature(candidature.id)}
-                                  disabled={actionLoading === `annuler-${candidature.id}`}
-                                  style={{
-                                    backgroundColor: '#fef2f2',
-                                    color: '#dc2626',
-                                    padding: '8px 16px',
-                                    borderRadius: '6px',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    opacity: actionLoading === `annuler-${candidature.id}` ? 0.7 : 1
-                                  }}
-                                >
-                                  Annuler
-                                </button>
-                              ) : canExpand ? (
-                                <>
-                                  <button
-                                    onClick={() => setExpandedCandidature(isExpanded ? null : candidature.id)}
-                                    style={{
-                                      backgroundColor: '#059669',
-                                      color: 'white',
-                                      padding: '8px 16px',
-                                      borderRadius: '6px',
-                                      fontSize: '13px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {isExpanded ? '▲ Fermer' : '▼ Détails'}
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/ride/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#2563eb',
-                                      color: 'white',
-                                      padding: '8px 16px',
-                                      borderRadius: '6px',
-                                      fontSize: '13px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    💬 Chat
-                                  </button>
-                                </>
-                              ) : course.statut === 'terminee' && isAttributedToMe ? (
-                                <>
-                                  <button
-                                    onClick={() => navigate(`/rate/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#f59e0b',
-                                      color: 'white',
-                                      padding: '8px 16px',
-                                      borderRadius: '6px',
-                                      fontSize: '13px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    ⭐ Noter
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/ride/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#2563eb',
-                                      color: 'white',
-                                      padding: '8px 16px',
-                                      borderRadius: '6px',
-                                      fontSize: '13px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    💬 Chat
-                                  </button>
-                                </>
-                              ) : (
-                                <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
-                              )}
-                            </div>
                           </td>
                         </tr>
                         

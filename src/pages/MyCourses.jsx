@@ -336,13 +336,13 @@ export default function MyCourses() {
                   <tr style={{ backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Date</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Heure</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Bagages</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Statut</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Candidats</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -350,7 +350,6 @@ export default function MyCourses() {
                     const statut = getStatutBadge(course.statut)
                     const isExpanded = expandedCourse === course.id
                     const hasCandidatures = course.candidatures?.length > 0
-                    const isAttributed = course.statut === 'attribuee' || course.statut === 'terminee'
                     
                     return (
                       <React.Fragment key={course.id}>
@@ -368,6 +367,135 @@ export default function MyCourses() {
                           </td>
                           <td style={{ padding: '14px 16px', color: '#111827' }}>
                             {formatTime(course.date_heure)}
+                          </td>
+                          {/* Action - Déplacé ici */}
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap' }}>
+                              {course.statut === 'disponible' && hasCandidatures ? (
+                                <>
+                                  <button
+                                    onClick={() => handleExpandCourse(course.id, course.candidatures)}
+                                    style={{
+                                      backgroundColor: '#1e40af',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    {isExpanded ? '▲' : '▼'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleAnnulerCourse(course.id)}
+                                    disabled={actionLoading === `annuler-${course.id}`}
+                                    style={{
+                                      backgroundColor: '#fef2f2',
+                                      color: '#dc2626',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      opacity: actionLoading === `annuler-${course.id}` ? 0.7 : 1
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              ) : course.statut === 'disponible' ? (
+                                <button
+                                  onClick={() => handleAnnulerCourse(course.id)}
+                                  disabled={actionLoading === `annuler-${course.id}`}
+                                  style={{
+                                    backgroundColor: '#fef2f2',
+                                    color: '#dc2626',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    opacity: actionLoading === `annuler-${course.id}` ? 0.7 : 1
+                                  }}
+                                >
+                                  Annuler
+                                </button>
+                              ) : course.statut === 'attribuee' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleTerminerCourse(course.id)}
+                                    disabled={actionLoading === `terminer-${course.id}`}
+                                    style={{
+                                      backgroundColor: '#059669',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      opacity: actionLoading === `terminer-${course.id}` ? 0.7 : 1
+                                    }}
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/ride/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬
+                                  </button>
+                                </>
+                              ) : course.statut === 'terminee' ? (
+                                <>
+                                  <button
+                                    onClick={() => navigate(`/rate/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#f59e0b',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ⭐
+                                  </button>
+                                  <button
+                                    onClick={() => navigate(`/ride/${course.id}`)}
+                                    style={{
+                                      backgroundColor: '#2563eb',
+                                      color: 'white',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      fontSize: '12px',
+                                      fontWeight: '500',
+                                      border: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💬
+                                  </button>
+                                </>
+                              ) : (
+                                <span style={{ color: '#9ca3af', fontSize: '13px' }}>-</span>
+                              )}
+                            </div>
                           </td>
                           <td style={{ padding: '14px 16px' }}>
                             <div style={{ fontWeight: '600', color: '#111827' }}>
@@ -424,132 +552,6 @@ export default function MyCourses() {
                                 {course.chauffeur_attribue.nom}
                               </span>
                             ) : '-'}
-                          </td>
-                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'nowrap' }}>
-                              {course.statut === 'disponible' && hasCandidatures ? (
-                                <>
-                                  <button
-                                    onClick={() => handleExpandCourse(course.id, course.candidatures)}
-                                    style={{
-                                      backgroundColor: '#1e40af',
-                                      color: 'white',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    {isExpanded ? '▲ Fermer' : '▼ Choisir'}
-                                  </button>
-                                  <button
-                                    onClick={() => handleAnnulerCourse(course.id)}
-                                    disabled={actionLoading === `annuler-${course.id}`}
-                                    style={{
-                                      backgroundColor: '#fef2f2',
-                                      color: '#dc2626',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      opacity: actionLoading === `annuler-${course.id}` ? 0.7 : 1
-                                    }}
-                                  >
-                                    ✕
-                                  </button>
-                                </>
-                              ) : course.statut === 'disponible' ? (
-                                <button
-                                  onClick={() => handleAnnulerCourse(course.id)}
-                                  disabled={actionLoading === `annuler-${course.id}`}
-                                  style={{
-                                    backgroundColor: '#fef2f2',
-                                    color: '#dc2626',
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: '500',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    opacity: actionLoading === `annuler-${course.id}` ? 0.7 : 1
-                                  }}
-                                >
-                                  Annuler
-                                </button>
-                              ) : course.statut === 'attribuee' ? (
-                                <>
-                                  <button
-                                    onClick={() => handleTerminerCourse(course.id)}
-                                    disabled={actionLoading === `terminer-${course.id}`}
-                                    style={{
-                                      backgroundColor: '#059669',
-                                      color: 'white',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      opacity: actionLoading === `terminer-${course.id}` ? 0.7 : 1
-                                    }}
-                                  >
-                                    ✓ Terminer
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/ride/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#2563eb',
-                                      color: 'white',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    💬
-                                  </button>
-                                </>
-                              ) : course.statut === 'terminee' ? (
-                                <>
-                                  <button
-                                    onClick={() => navigate(`/rate/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#f59e0b',
-                                      color: 'white',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    ⭐ Noter
-                                  </button>
-                                  <button
-                                    onClick={() => navigate(`/ride/${course.id}`)}
-                                    style={{
-                                      backgroundColor: '#2563eb',
-                                      color: 'white',
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      fontSize: '12px',
-                                      fontWeight: '500',
-                                      border: 'none',
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    💬
-                                  </button>
-                                </>
-                              ) : '-'}
-                            </div>
                           </td>
                         </tr>
                         

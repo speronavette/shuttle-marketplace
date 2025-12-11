@@ -441,35 +441,26 @@ export default function HowItWorks() {
           
           <p style={{ fontSize: '15px', color: '#374151', lineHeight: '1.7', marginBottom: '16px' }}>
             Pour garantir un minimum de sérieux, chaque chauffeur doit faire valider son profil 
-            avant de pouvoir candidater aux courses. Documents requis :
+            avant de pouvoir candidater aux courses. Un seul document requis :
           </p>
 
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            padding: '16px 20px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            color: '#065f46',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
             gap: '12px'
           }}>
-            {[
-              { icon: '📄', text: 'Autorisation d\'exploiter' },
-              { icon: '🚗', text: 'Attestation véhicule' },
-              { icon: '🛡️', text: 'Assurance transport de personnes' },
-              { icon: '📋', text: 'Certificat d\'immatriculation' },
-              { icon: '💳', text: 'Carte verte' }
-            ].map((doc, i) => (
-              <div key={i} style={{
-                backgroundColor: '#f9fafb',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#374151'
-              }}>
-                {doc.icon} {doc.text}
-              </div>
-            ))}
+            <span style={{ fontSize: '24px' }}>📄</span>
+            Autorisation d'exploiter
           </div>
 
           <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '16px' }}>
-            Envoyez vos documents à <strong>shuttlemarketplace@gmail.com</strong> — Validation sous 24-48h.
+            Envoyez votre autorisation à <strong>shuttlemarketplace@gmail.com</strong> — Validation sous 24-48h.
           </p>
         </section>
 

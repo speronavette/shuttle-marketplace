@@ -373,7 +373,7 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Documents requis */}
+          {/* Document requis */}
           <div style={{
             backgroundColor: '#fffbeb',
             borderRadius: '12px',
@@ -381,23 +381,18 @@ export default function Login() {
             padding: '20px'
           }}>
             <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '12px' }}>
-              📋 Documents requis pour valider votre profil
+              📋 Document requis pour valider votre profil
             </h3>
-            <ul style={{ 
-              fontSize: '13px', 
-              color: '#78350f', 
-              paddingLeft: '20px',
-              margin: 0,
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#78350f',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              <li>Autorisation</li>
-              <li>Attestation véhicule</li>
-              <li>Attestation d'assurance transport de personnes</li>
-              <li>Certificat d'immatriculation</li>
-              <li>Carte verte</li>
-            </ul>
+              <span style={{ fontSize: '18px' }}>📄</span>
+              <strong>Autorisation d'exploiter</strong>
+            </div>
           </div>
         </div>
 
@@ -834,7 +829,7 @@ export default function Login() {
               </p>
             </div>
 
-            {/* Étape 2 - Documents */}
+            {/* Étape 2 - Document */}
             <div style={{
               backgroundColor: '#fef3c7',
               borderRadius: '12px',
@@ -843,21 +838,20 @@ export default function Login() {
               border: '1px solid #fcd34d'
             }}>
               <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>
-                2️⃣ Envoyez vos documents
+                2️⃣ Envoyez votre autorisation d'exploiter
               </h3>
               <p style={{ fontSize: '13px', color: '#78350f', marginBottom: '12px' }}>
-                Pour valider votre profil et pouvoir candidater aux courses :
+                Pour valider votre profil et pouvoir candidater aux courses, envoyez simplement votre <strong>autorisation d'exploiter</strong> :
               </p>
               
               <div style={{
                 backgroundColor: 'white',
                 padding: '12px',
                 borderRadius: '8px',
-                textAlign: 'center',
-                marginBottom: '12px'
+                textAlign: 'center'
               }}>
                 <a 
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Autorisation%20d'exploiter%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mon%20autorisation%20d'exploiter%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
                   style={{
                     fontSize: '16px',
                     fontWeight: 'bold',
@@ -868,22 +862,6 @@ export default function Login() {
                   📧 shuttlemarketplace@gmail.com
                 </a>
               </div>
-
-              <ul style={{ 
-                fontSize: '12px', 
-                color: '#78350f', 
-                paddingLeft: '20px',
-                margin: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px'
-              }}>
-                <li>Autorisation</li>
-                <li>Attestation véhicule</li>
-                <li>Attestation d'assurance</li>
-                <li>Certificat d'immatriculation</li>
-                <li>Carte verte</li>
-              </ul>
             </div>
 
             <div style={{
@@ -895,7 +873,7 @@ export default function Login() {
               color: '#065f46',
               textAlign: 'center'
             }}>
-              ⏱️ Validation sous <strong>24-48h</strong> après réception des documents
+              ⏱️ Validation sous <strong>24-48h</strong> après réception
             </div>
 
             <button

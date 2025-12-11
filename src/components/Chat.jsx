@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
+import { sendFirstChatMessageNotification } from '../services/emailService'
 
-export default function Chat({ courseId, otherUserName }) {
+export default function Chat({ courseId, otherUserName, course, otherUserId }) {
   const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
@@ -55,6 +56,8 @@ export default function Chat({ courseId, otherUserName }) {
     e.preventDefault()
     if (!newMessage.trim() || sending) return
 
+    const isFirstMessage = messages.length === 0
+
     setSending(true)
     try {
       const { error } = await supabase
@@ -66,6 +69,38 @@ export default function Chat({ courseId, otherUserName }) {
         }])
 
       if (error) throw error
+
+      // Si c'est le premier message, envoyer une notification email
+      if (isFirstMessage && otherUserId && course) {
+        try {
+          // Récupérer les infos de l'autre utilisateur
+          const { data: otherUser } = await supabase
+            .from('users')
+            .select('email, nom, notif_email')
+            .eq('id', otherUserId)
+            .single()
+
+          // Récupérer mon nom
+          const { data: myProfile } = await supabase
+            .from('users')
+            .select('nom')
+            .eq('id', user.id)
+            .single()
+
+          if (otherUser?.notif_email && otherUser?.email) {
+            await sendFirstChatMessageNotification({
+              course,
+              senderName: myProfile?.nom || 'Un utilisateur',
+              recipientEmail: otherUser.email,
+              recipientName: otherUser.nom
+            })
+            console.log('📧 Email notification chat envoyé')
+          }
+        } catch (emailError) {
+          console.error('Erreur envoi email chat:', emailError)
+          // Ne pas bloquer l'envoi du message si l'email échoue
+        }
+      }
       
       setNewMessage('')
       fetchMessages()

@@ -92,7 +92,6 @@ export const sendNewCourseNotification = async ({ course, recipients }) => {
       
       <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
         <p>Vous recevez cet email car vous êtes inscrit sur Shuttle Marketplace.</p>
-        <p>Pour modifier vos préférences de notification, connectez-vous à votre compte.</p>
       </div>
     </div>
   `
@@ -109,7 +108,6 @@ export const sendNewCourseNotification = async ({ course, recipients }) => {
 export const sendCandidatureNotification = async ({ course, candidat, prixPropose, sociétéEmail }) => {
   const subject = `📨 Nouvelle candidature pour ${course.depart} → ${course.arrivee}`
 
-  // Déterminer si c'est une sous-enchère
   const isSousEnchere = prixPropose < course.prix
   const economie = course.prix - prixPropose
 
@@ -131,20 +129,6 @@ export const sendCandidatureNotification = async ({ course, candidat, prixPropos
             ${course.depart} → ${course.arrivee}
           </h3>
           
-          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            <tr>
-              <td style="padding: 12px; background-color: #f3f4f6; border-radius: 8px; text-align: center; width: 50%;">
-                <div style="font-size: 12px; color: #6b7280;">Prix demandé</div>
-                <div style="font-size: 18px; font-weight: bold; color: #374151;">${course.prix}€</div>
-              </td>
-              <td style="padding: 12px; background-color: ${isSousEnchere ? '#ecfdf5' : '#f3f4f6'}; border-radius: 8px; text-align: center; width: 50%; ${isSousEnchere ? 'border: 2px solid #059669;' : ''}">
-                <div style="font-size: 12px; color: ${isSousEnchere ? '#059669' : '#6b7280'};">Prix proposé</div>
-                <div style="font-size: 20px; font-weight: bold; color: ${isSousEnchere ? '#059669' : '#374151'};">${prixPropose}€</div>
-                ${isSousEnchere ? `<div style="font-size: 11px; color: #059669;">Économie de ${economie}€</div>` : ''}
-              </td>
-            </tr>
-          </table>
-          
           <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; margin-top: 12px;">
             <div style="font-size: 14px; color: #374151;">
               <strong>👤 ${candidat.nom}</strong>
@@ -162,10 +146,6 @@ export const sendCandidatureNotification = async ({ course, candidat, prixPropos
             Voir les candidatures
           </a>
         </div>
-      </div>
-      
-      <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
-        <p>Vous recevez cet email car vous êtes inscrit sur Shuttle Marketplace.</p>
       </div>
     </div>
   `
@@ -259,17 +239,12 @@ export const sendAcceptationNotification = async ({ course, chauffeurEmail, soci
           </a>
         </div>
       </div>
-      
-      <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
-        <p>Vous recevez cet email car vous êtes inscrit sur Shuttle Marketplace.</p>
-      </div>
     </div>
   `
 
   return await sendEmail({ to: chauffeurEmail, subject, html })
 }
 
-// NOUVELLE FONCTION - Email pour les candidats non retenus
 export const sendNonRetenuNotification = async ({ course, chauffeurEmail, chauffeurNom }) => {
   const subject = `❌ Candidature non retenue : ${course.depart} → ${course.arrivee}`
 
@@ -312,7 +287,7 @@ export const sendNonRetenuNotification = async ({ course, chauffeurEmail, chauff
         <div style="background-color: #ecfdf5; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #a7f3d0;">
           <p style="color: #065f46; margin: 0; font-size: 15px;">
             💪 <strong>Ne vous découragez pas !</strong><br><br>
-            D'autres courses vous attendent sur Shuttle Marketplace. Consultez les nouvelles opportunités dès maintenant.
+            D'autres courses vous attendent sur Shuttle Marketplace.
           </p>
         </div>
         
@@ -323,6 +298,56 @@ export const sendNonRetenuNotification = async ({ course, chauffeurEmail, chauff
           </a>
         </div>
       </div>
+    </div>
+  `
+
+  return await sendEmail({ to: chauffeurEmail, subject, html })
+}
+
+// NOUVELLE FONCTION - Notification premier message chat
+export const sendFirstChatMessageNotification = async ({ course, senderName, recipientEmail, recipientName }) => {
+  const subject = `💬 Nouveau message pour la course ${course.depart} → ${course.arrivee}`
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('fr-BE', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    })
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #2563eb; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">💬 Nouveau message</h1>
+      </div>
+      
+      <div style="padding: 30px; background-color: #f9fafb;">
+        <p style="color: #374151; font-size: 16px;">
+          Bonjour ${recipientName},
+        </p>
+        
+        <p style="color: #374151; font-size: 16px;">
+          <strong>${senderName}</strong> vous a envoyé un message concernant la course :
+        </p>
+        
+        <div style="background-color: white; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #e5e7eb;">
+          <h3 style="margin-top: 0; color: #111827; font-size: 18px;">
+            ${course.depart} → ${course.arrivee}
+          </h3>
+          <p style="color: #6b7280; margin: 8px 0 0 0;">
+            📅 ${formatDate(course.date_heure)}
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="https://shuttle-marketplace.be/ride/${course.id}" 
+             style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block;">
+            Voir la conversation
+          </a>
+        </div>
+      </div>
       
       <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
         <p>Vous recevez cet email car vous êtes inscrit sur Shuttle Marketplace.</p>
@@ -330,5 +355,5 @@ export const sendNonRetenuNotification = async ({ course, chauffeurEmail, chauff
     </div>
   `
 
-  return await sendEmail({ to: chauffeurEmail, subject, html })
+  return await sendEmail({ to: recipientEmail, subject, html })
 }

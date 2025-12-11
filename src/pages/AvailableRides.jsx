@@ -131,22 +131,10 @@ export default function AvailableRides() {
                   Profil en attente de validation
                 </div>
                 <p style={{ fontSize: '14px', color: '#78350f', margin: '0 0 12px 0' }}>
-                  Vous pouvez consulter les courses, mais pas candidater. Envoyez vos documents pour activer votre compte :
+                  Vous pouvez consulter les courses, mais pas candidater. Envoyez votre <strong>autorisation d'exploiter</strong> pour activer votre compte :
                 </p>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '6px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>📄 Autorisation d'exploiter</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>🚗 Attestation véhicule</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>🛡️ Assurance transport de personnes</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>📋 Certificat d'immatriculation</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>💳 Carte verte</div>
-                </div>
                 <a 
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Autorisation%20d'exploiter%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mon%20autorisation%20d'exploiter%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
                   style={{ 
                     display: 'inline-block',
                     backgroundColor: '#92400e',
@@ -158,7 +146,7 @@ export default function AvailableRides() {
                     textDecoration: 'none'
                   }}
                 >
-                  📧 Envoyer mes documents
+                  📧 Envoyer mon autorisation
                 </a>
               </div>
             </div>

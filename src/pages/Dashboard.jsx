@@ -74,13 +74,10 @@ export default function Dashboard() {
                   Profil en attente de validation
                 </h3>
                 <p style={{ fontSize: '14px', color: '#991b1b', margin: '0 0 12px 0' }}>
-                  Pour pouvoir <strong>candidater aux courses</strong>, vous devez d'abord faire valider votre profil en envoyant vos documents.
-                </p>
-                <p style={{ fontSize: '13px', color: '#991b1b', margin: '0 0 16px 0' }}>
-                  📋 Documents requis : Autorisation LVC, Attestation véhicule, Attestation d'assurance transport de personnes, Certificat d'immatriculation, Carte verte.
+                  Pour pouvoir <strong>candidater aux courses</strong>, envoyez votre <strong>autorisation d'exploiter</strong>.
                 </p>
                 <a
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ADocuments%20requis%20:%0A-%20Autorisation%20LVC%0A-%20Attestation%20véhicule%0A-%20Attestation%20d'assurance%20transport%20de%20personnes%0A-%20Certificat%20d'immatriculation%0A-%20Carte%20verte%0A%0ACordialement"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Autorisation%20d'exploiter%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mon%20autorisation%20d'exploiter%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
                   style={{
                     display: 'inline-block',
                     backgroundColor: '#dc2626',
@@ -92,10 +89,10 @@ export default function Dashboard() {
                     textDecoration: 'none'
                   }}
                 >
-                  📧 Envoyer mes documents
+                  📧 Envoyer mon autorisation
                 </a>
                 <p style={{ fontSize: '12px', color: '#991b1b', margin: '12px 0 0 0', fontStyle: 'italic' }}>
-                  ⏱️ Validation sous 24-48h après réception des documents.
+                  ⏱️ Validation sous 24-48h après réception.
                 </p>
               </div>
             </div>

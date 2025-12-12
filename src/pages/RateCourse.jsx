@@ -57,13 +57,13 @@ export default function RateCourse() {
         })
       }
 
-      // Vérifier si déjà noté
+      // Vérifier si déjà noté - CORRECTION: utiliser maybeSingle() au lieu de single()
       const { data: existingRating } = await supabase
         .from('avis')
         .select('id')
         .eq('course_id', id)
         .eq('evaluateur_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (existingRating) {
         setAlreadyRated(true)

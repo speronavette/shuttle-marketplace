@@ -26,7 +26,7 @@ export default function AvailableRides() {
         .from('courses')
         .select(`
           *,
-          societe:users!societe_id (nom, note_moyenne),
+          societe:users!societe_id (id, nom, note_moyenne),
           candidatures (id, chauffeur_id)
         `)
         .eq('statut', 'disponible')
@@ -232,7 +232,6 @@ export default function AvailableRides() {
                     <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Trajet</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Pax</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Bagages</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Societe</th>
                     <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: '600', color: '#374151' }}>Prix</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Candidats</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: '600', color: '#374151' }}>Action</th>
@@ -290,14 +289,6 @@ export default function AvailableRides() {
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'center', color: '#6b7280' }}>
                           {course.nb_bagages || 0}
-                        </td>
-                        <td style={{ padding: '14px 16px', color: '#6b7280' }}>
-                          <div>{course.societe?.nom || '-'}</div>
-                          {course.societe?.note_moyenne > 0 && (
-                            <div style={{ fontSize: '12px', color: '#f59e0b' }}>
-                              ⭐ {course.societe.note_moyenne}/5
-                            </div>
-                          )}
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                           <span style={{

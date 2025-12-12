@@ -4,7 +4,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import Header from '../components/Header'
 import Chat from '../components/Chat'
-import { sendCandidatureNotification } from '../services/emailService'
+import { sendCandidatureNotification, sendAcceptationNotification } from '../services/emailService'
 
 export default function RideDetail() {
   const { id } = useParams()
@@ -51,7 +51,7 @@ export default function RideDetail() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('valide')
+        .select('valide, nom, telephone')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -72,7 +72,7 @@ export default function RideDetail() {
         .select('id')
         .eq('course_id', id)
         .eq('chauffeur_id', user.id)
-        .maybeSingle()  // maybeSingle() ne génère pas d'erreur si 0 résultat
+        .maybeSingle()
 
       if (!error && data) {
         setHasCandidature(true)
@@ -90,7 +90,7 @@ export default function RideDetail() {
 
     // Vérifier si l'utilisateur est validé
     if (!userProfile?.valide) {
-      setMessage('⚠️ Votre profil n\'est pas encore validé. Veuillez envoyer vos documents à shuttlemarketplace@gmail.com')
+      setMessage('⚠️ Votre profil n\'est pas encore validé. Envoyez votre autorisation d\'exploiter à shuttlemarketplace@gmail.com')
       return
     }
 
@@ -137,27 +137,32 @@ export default function RideDetail() {
 
         if (updateError) throw updateError
 
-        // Envoyer notification au donneur d'ordre
+        // Récupérer les infos de la société pour l'email
         const { data: societe } = await supabase
           .from('users')
-          .select('email, notif_email')
+          .select('email, notif_email, nom, telephone, raison_sociale, numero_tva, rue, numero, code_postal, commune, email_facturation')
           .eq('id', course.societe_id)
           .single()
 
-        const { data: candidat } = await supabase
-          .from('users')
-          .select('nom, telephone')
-          .eq('id', user.id)
-          .single()
+        // Envoyer email d'acceptation au chauffeur
+        if (userProfile) {
+          await sendAcceptationNotification({
+            course: { ...course, prix: course.prix },
+            chauffeurEmail: user.email,
+            societe
+          })
+          console.log('📧 Email acceptation auto envoyé au chauffeur')
+        }
 
+        // Notifier le donneur d'ordre que sa course a été prise
         if (societe?.notif_email) {
           await sendCandidatureNotification({
             course,
-            candidat,
+            candidat: userProfile,
             prixPropose: course.prix,
-            sociétéEmail: societe.email,
-            autoAttribue: true
+            sociétéEmail: societe.email
           })
+          console.log('📧 Notification envoyée au donneur d\'ordre')
         }
 
         setHasCandidature(true)
@@ -283,7 +288,7 @@ export default function RideDetail() {
         margin: '0 auto',
         padding: '32px 16px'
       }}>
-        {/* Alerte profil non validé */}
+        {/* Alerte profil non validé - SIMPLIFIÉ */}
         {user && !isOwner && !isValidated && (
           <div style={{
             backgroundColor: '#fef3c7',
@@ -299,22 +304,10 @@ export default function RideDetail() {
                   Profil en attente de validation
                 </div>
                 <p style={{ fontSize: '14px', color: '#78350f', margin: '0 0 12px 0' }}>
-                  Pour pouvoir candidater aux courses, envoyez vos documents :
+                  Pour pouvoir candidater, envoyez votre <strong>autorisation d'exploiter</strong> :
                 </p>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  gap: '6px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>📄 Autorisation d'exploiter</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>🚗 Attestation véhicule</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>🛡️ Assurance transport de personnes</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>📋 Certificat d'immatriculation</div>
-                  <div style={{ fontSize: '13px', color: '#78350f' }}>💳 Carte verte</div>
-                </div>
                 <a
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mes%20documents%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Autorisation%20d'exploiter%20-%20Validation%20profil&body=Bonjour,%0A%0AVeuillez%20trouver%20ci-joint%20mon%20autorisation%20d'exploiter%20pour%20la%20validation%20de%20mon%20profil.%0A%0ANom%20:%20%0ATéléphone%20:%20%0A%0ACordialement"
                   style={{
                     display: 'inline-block',
                     backgroundColor: '#92400e',
@@ -326,7 +319,7 @@ export default function RideDetail() {
                     textDecoration: 'none'
                   }}
                 >
-                  📧 Envoyer mes documents
+                  📧 Envoyer mon autorisation
                 </a>
               </div>
             </div>
@@ -589,35 +582,14 @@ export default function RideDetail() {
             </div>
           )}
 
-          {/* Publié par - Toujours visible */}
-          {!isAttributedToMe && (
-            <div style={{
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              padding: '16px',
-              marginBottom: '24px'
-            }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Publié par
-              </div>
-              <div style={{ fontSize: '15px', color: '#111827' }}>
-                <strong>{course.societe?.nom}</strong>
-              </div>
-              <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-                ⭐ {course.societe?.note_moyenne > 0 ? `${course.societe.note_moyenne}/5` : 'Pas encore de note'} • 
-                🚗 {course.societe?.nb_courses_total || 0} courses
-              </div>
-            </div>
-          )}
-
           {/* Message */}
           {message && (
             <div style={{
               padding: '12px 16px',
               borderRadius: '8px',
               marginBottom: '16px',
-              backgroundColor: message.includes('✅') ? '#ecfdf5' : message.includes('⚠️') ? '#fef3c7' : '#fef2f2',
-              color: message.includes('✅') ? '#059669' : message.includes('⚠️') ? '#92400e' : '#dc2626',
+              backgroundColor: message.includes('✅') || message.includes('🎉') ? '#ecfdf5' : message.includes('⚠️') ? '#fef3c7' : '#fef2f2',
+              color: message.includes('✅') || message.includes('🎉') ? '#059669' : message.includes('⚠️') ? '#92400e' : '#dc2626',
               fontSize: '14px'
             }}>
               {message}
@@ -692,10 +664,10 @@ export default function RideDetail() {
                   🔒 Candidature bloquée
                 </div>
                 <p style={{ fontSize: '14px', color: '#991b1b', marginBottom: '16px' }}>
-                  Votre profil doit être validé avant de pouvoir candidater aux courses.
+                  Envoyez votre <strong>autorisation d'exploiter</strong> pour activer votre compte.
                 </p>
                 <a
-                  href="mailto:shuttlemarketplace@gmail.com?subject=Documents%20-%20Validation%20profil"
+                  href="mailto:shuttlemarketplace@gmail.com?subject=Autorisation%20d'exploiter%20-%20Validation%20profil"
                   style={{
                     display: 'inline-block',
                     backgroundColor: '#dc2626',
@@ -707,7 +679,7 @@ export default function RideDetail() {
                     textDecoration: 'none'
                   }}
                 >
-                  📧 Envoyer mes documents
+                  📧 Envoyer mon autorisation
                 </a>
               </div>
             ) : (
@@ -722,7 +694,7 @@ export default function RideDetail() {
                     textAlign: 'center'
                   }}>
                     <span style={{ fontSize: '14px', color: '#92400e', fontWeight: '500' }}>
-                      ⚡ Mode "Premier arrivé" — Si vous candidatez, la course vous est attribuée immédiatement !
+                      ⚡ Mode "Premier arrivé" — La course vous est attribuée immédiatement !
                     </span>
                   </div>
                 )}
@@ -743,7 +715,7 @@ export default function RideDetail() {
                   }}
                 >
                   {candidatureLoading 
-                    ? 'Envoi en cours...' 
+                    ? 'Attribution en cours...' 
                     : course.mode_attribution === 'premier_arrive'
                       ? `⚡ Prendre cette course pour ${course.prix}€`
                       : `🚗 Candidater pour ${course.prix}€`

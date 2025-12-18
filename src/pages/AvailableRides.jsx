@@ -11,7 +11,15 @@ export default function AvailableRides() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState(null)
-  const [sortBy, setSortBy] = useState('recent') // 'recent', 'date', 'prix'
+  const [sortBy, setSortBy] = useState('recent')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  // Détecter le changement de taille d'écran
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     fetchCourses()
@@ -76,12 +84,10 @@ export default function AvailableRides() {
 
   const isValidated = userProfile?.valide === true
 
-  // Vérifier si l'utilisateur a déjà candidaté
   const hasCandidated = (course) => {
     return course.candidatures?.some(c => c.chauffeur_id === user?.id)
   }
 
-  // Trier les courses
   const sortedCourses = [...courses].sort((a, b) => {
     switch (sortBy) {
       case 'recent':
@@ -121,7 +127,7 @@ export default function AvailableRides() {
             backgroundColor: '#fef3c7',
             border: '1px solid #fcd34d',
             borderRadius: '12px',
-            padding: '20px',
+            padding: '16px',
             marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -163,7 +169,7 @@ export default function AvailableRides() {
           gap: '12px'
         }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+            <h1 style={{ fontSize: isMobile ? '20px' : '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
               Courses disponibles
             </h1>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' }}>
@@ -173,7 +179,7 @@ export default function AvailableRides() {
           
           {/* Sélecteur de tri */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#6b7280' }}>Trier par :</span>
+            {!isMobile && <span style={{ fontSize: '14px', color: '#6b7280' }}>Trier par :</span>}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -186,9 +192,9 @@ export default function AvailableRides() {
                 cursor: 'pointer'
               }}
             >
-              <option value="recent">🕐 Dernières publiées</option>
-              <option value="date">📅 Prochaines courses</option>
-              <option value="prix">💰 Prix décroissant</option>
+              <option value="recent">🕐 Récentes</option>
+              <option value="date">📅 Prochaines</option>
+              <option value="prix">💰 Prix</option>
             </select>
           </div>
         </div>
@@ -210,7 +216,156 @@ export default function AvailableRides() {
               Les nouvelles courses apparaîtront ici
             </p>
           </div>
+        ) : isMobile ? (
+          // ========== VUE MOBILE : CARTES ==========
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {sortedCourses.map((course) => {
+              const isOwner = user?.id === course.societe_id
+              const alreadyCandidated = hasCandidated(course)
+
+              return (
+                <div
+                  key={course.id}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    border: '1px solid #e5e7eb',
+                    padding: '16px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => !isOwner && navigate(`/ride/${course.id}`)}
+                >
+                  {/* Ligne 1 : Date/Heure + Prix */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      <span style={{ fontWeight: '600', color: '#111827' }}>
+                        {formatDate(course.date_heure)}
+                      </span>
+                      <span>•</span>
+                      <span>{formatTime(course.date_heure)}</span>
+                    </div>
+                    <span style={{
+                      backgroundColor: '#ecfdf5',
+                      color: '#059669',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '16px'
+                    }}>
+                      {course.prix}€
+                    </span>
+                  </div>
+
+                  {/* Ligne 2 : Trajet */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ 
+                      fontWeight: '600', 
+                      color: '#111827', 
+                      fontSize: '16px',
+                      marginBottom: '4px'
+                    }}>
+                      {course.depart}
+                    </div>
+                    <div style={{ 
+                      color: '#6b7280', 
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span>↓</span>
+                      <span>{course.arrivee}</span>
+                    </div>
+                    {course.mode_attribution === 'premier_arrive' && (
+                      <span style={{
+                        display: 'inline-block',
+                        backgroundColor: '#fef3c7',
+                        color: '#92400e',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        marginTop: '8px'
+                      }}>
+                        ⚡ Premier arrivé
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Ligne 3 : Infos + Action */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    paddingTop: '12px',
+                    borderTop: '1px solid #f3f4f6'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '12px',
+                      fontSize: '13px',
+                      color: '#6b7280'
+                    }}>
+                      <span>👥 {course.nb_passagers}</span>
+                      <span>🧳 {course.nb_bagages || 0}</span>
+                      <span style={{
+                        backgroundColor: course.candidatures?.length > 0 ? '#dbeafe' : '#f3f4f6',
+                        color: course.candidatures?.length > 0 ? '#1e40af' : '#6b7280',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        fontWeight: '600'
+                      }}>
+                        {course.candidatures?.length || 0} candidat{course.candidatures?.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {isOwner ? (
+                      <span style={{ 
+                        color: '#9ca3af', 
+                        fontSize: '12px',
+                        fontStyle: 'italic'
+                      }}>
+                        Ma course
+                      </span>
+                    ) : alreadyCandidated ? (
+                      <span style={{
+                        backgroundColor: '#ecfdf5',
+                        color: '#059669',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        ✓ Candidaté
+                      </span>
+                    ) : (
+                      <span style={{
+                        color: '#111827',
+                        fontSize: '13px',
+                        fontWeight: '500'
+                      }}>
+                        Voir →
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         ) : (
+          // ========== VUE DESKTOP : TABLEAU ==========
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -218,7 +373,6 @@ export default function AvailableRides() {
             border: '1px solid #e5e7eb',
             overflow: 'hidden'
           }}>
-            {/* Tableau */}
             <div style={{ overflowX: 'auto' }}>
               <table style={{ 
                 width: '100%', 

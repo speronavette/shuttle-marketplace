@@ -14,6 +14,7 @@ export default function MyCourses() {
   const [actionLoading, setActionLoading] = useState(null)
   const [expandedCourse, setExpandedCourse] = useState(null)
   const [candidatsVehicules, setCandidatsVehicules] = useState({})
+  const [sortBy, setSortBy] = useState('date') // 'date', 'recent', 'prix', 'statut'
 
   useEffect(() => {
     if (user) {
@@ -237,6 +238,25 @@ export default function MyCourses() {
     }
   }
 
+  // Ordre de priorité des statuts pour le tri
+  const statutOrder = { 'disponible': 1, 'attribuee': 2, 'terminee': 3, 'annulee': 4 }
+
+  // Trier les courses
+  const sortedCourses = [...courses].sort((a, b) => {
+    switch (sortBy) {
+      case 'date':
+        return new Date(a.date_heure) - new Date(b.date_heure)
+      case 'recent':
+        return new Date(b.created_at) - new Date(a.created_at)
+      case 'prix':
+        return b.prix - a.prix
+      case 'statut':
+        return (statutOrder[a.statut] || 99) - (statutOrder[b.statut] || 99)
+      default:
+        return 0
+    }
+  })
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -262,7 +282,9 @@ export default function MyCourses() {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
@@ -272,21 +294,46 @@ export default function MyCourses() {
               {courses.length} course{courses.length > 1 ? 's' : ''} publiée{courses.length > 1 ? 's' : ''}
             </p>
           </div>
-          <button
-            onClick={() => navigate('/publish-ride')}
-            style={{
-              backgroundColor: '#111827',
-              color: 'white',
-              padding: '10px 20px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              border: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            + Nouvelle course
-          </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Sélecteur de tri */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14px', color: '#6b7280' }}>Trier par :</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '14px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="date">📅 Prochaines courses</option>
+                <option value="recent">🕐 Dernières publiées</option>
+                <option value="prix">💰 Prix décroissant</option>
+                <option value="statut">📊 Statut</option>
+              </select>
+            </div>
+            
+            <button
+              onClick={() => navigate('/publish-ride')}
+              style={{
+                backgroundColor: '#111827',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              + Nouvelle course
+            </button>
+          </div>
         </div>
 
         {courses.length === 0 ? (
@@ -346,7 +393,7 @@ export default function MyCourses() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.map((course, index) => {
+                  {sortedCourses.map((course, index) => {
                     const statut = getStatutBadge(course.statut)
                     const isExpanded = expandedCourse === course.id
                     const hasCandidatures = course.candidatures?.length > 0

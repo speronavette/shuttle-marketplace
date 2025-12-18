@@ -7,6 +7,8 @@ import AvailableRides from './pages/AvailableRides'
 import RideDetail from './pages/RideDetail'
 import MyCourses from './pages/MyCourses'
 import MyCandidatures from './pages/MyCandidatures'
+import MesCourses from './pages/MesCourses'
+import EnAttente from './pages/EnAttente'
 import RateCourse from './pages/RateCourse'
 import EditProfile from './pages/EditProfile'
 import AdminDashboard from './pages/AdminDashboard'
@@ -30,6 +32,8 @@ function App() {
           <Route path="/ride/:id" element={<RideDetail />} />
           <Route path="/my-courses" element={<MyCourses />} />
           <Route path="/my-candidatures" element={<MyCandidatures />} />
+          <Route path="/mes-courses" element={<MesCourses />} />
+          <Route path="/en-attente" element={<EnAttente />} />
           <Route path="/rate/:id" element={<RateCourse />} />
           <Route path="/profile" element={<EditProfile />} />
           <Route path="/admin" element={<AdminDashboard />} />
